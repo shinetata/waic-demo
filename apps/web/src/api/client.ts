@@ -84,6 +84,17 @@ export async function getCases(): Promise<InvestigationCase[]> {
   return (d.cases ?? []) as InvestigationCase[];
 }
 
+export async function getPreview(
+  scene: string,
+  role: string,
+): Promise<{ image: string; stage: string }> {
+  const r = await fetch(
+    `${BASE}/api/preview?scene=${encodeURIComponent(scene)}&role=${encodeURIComponent(role)}`,
+  );
+  const d = await r.json();
+  return { image: d.image ? assetUrl(d.image) : "", stage: d.stage || "" };
+}
+
 export interface RunParams {
   scene: string;
   role: string;

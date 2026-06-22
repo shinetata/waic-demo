@@ -1,0 +1,142 @@
+{
+  "stage": "home",
+  "image": "home.png",
+  "width": 1120,
+  "height": 1440,
+  "elements": [
+    {
+      "id": "nav-finance",
+      "label": "导航 · 财经",
+      "kind": "region",
+      "hint": "频道入口",
+      "rect": {
+        "x": 0.0696,
+        "y": 0.0854,
+        "w": 0.0518,
+        "h": 0.024
+      }
+    },
+    {
+      "id": "nav-sports",
+      "label": "导航 · 体育",
+      "kind": "region",
+      "hint": "频道入口",
+      "rect": {
+        "x": 0.125,
+        "y": 0.0854,
+        "w": 0.0518,
+        "h": 0.024
+      }
+    },
+    {
+      "id": "banner",
+      "label": "顶部推广 banner",
+      "kind": "region",
+      "hint": "广告，与意图无关",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.1295,
+        "w": 0.9714,
+        "h": 0.0649
+      }
+    },
+    {
+      "id": "section-finance",
+      "label": "财经要闻 分区",
+      "kind": "region",
+      "hint": "财经新闻聚集区",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.2222,
+        "w": 0.6607,
+        "h": 0.0198
+      }
+    },
+    {
+      "id": "item-finance",
+      "label": "头条：茅台大涨3.2%",
+      "kind": "link",
+      "hint": "点击进入财经详情页",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.2503,
+        "w": 0.6607,
+        "h": 0.1139
+      },
+      "to": "detail-trader"
+    },
+    {
+      "id": "section-sports",
+      "label": "体育快讯 分区",
+      "kind": "region",
+      "hint": "体育新闻聚集区",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.4726,
+        "w": 0.6607,
+        "h": 0.0198
+      }
+    },
+    {
+      "id": "item-sports",
+      "label": "头条：国足1:0日本",
+      "kind": "link",
+      "hint": "点击进入体育详情页",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.5007,
+        "w": 0.6607,
+        "h": 0.1139
+      },
+      "to": "detail-fan"
+    },
+    {
+      "id": "item-tech",
+      "label": "科技：GPT-5 发布",
+      "kind": "link",
+      "hint": "科技新闻",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.8792,
+        "w": 0.6607,
+        "h": 0.0847
+      }
+    },
+    {
+      "id": "market-card",
+      "label": "侧栏 · 实时行情",
+      "kind": "region",
+      "hint": "指数与个股报价",
+      "rect": {
+        "x": 0.7,
+        "y": 0.2069,
+        "w": 0.2857,
+        "h": 0.1837
+      }
+    },
+    {
+      "id": "stock-mt",
+      "label": "行情行 · 贵州茅台 +3.21%",
+      "kind": "region",
+      "hint": "个股报价核对",
+      "rect": {
+        "x": 0.7152,
+        "y": 0.3017,
+        "w": 0.2554,
+        "h": 0.0257
+      }
+    },
+    {
+      "id": "hot-list",
+      "label": "侧栏 · 热搜榜",
+      "kind": "region",
+      "hint": "实时热点话题",
+      "rect": {
+        "x": 0.7152,
+        "y": 0.526,
+        "w": 0.2554,
+        "h": 0.1667
+      }
+    }
+  ]
+}

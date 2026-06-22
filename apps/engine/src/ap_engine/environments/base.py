@@ -89,6 +89,7 @@ class ElementSpec:
     rect: Rect
     kind: str = "region"  # region | link
     hint: Optional[str] = None
+    to: Optional[str] = None  # link 的导航目标 stage（可选语义标注）
 
 
 @dataclass
@@ -111,6 +112,7 @@ class RoleSpec:
     prompt: str
     goal_hint: str
     stages: list[StageSpec]
+    output: str = ""  # 该角色的最终产出（结论卡片内容）
 
 
 @dataclass

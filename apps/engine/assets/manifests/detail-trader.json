@@ -1,0 +1,92 @@
+{
+  "stage": "detail-trader",
+  "image": "detail-trader.png",
+  "width": 1120,
+  "height": 900,
+  "elements": [
+    {
+      "id": "trader-chart",
+      "label": "K线主图",
+      "kind": "region",
+      "hint": "日内分时走势与放量",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.2156,
+        "w": 0.7679,
+        "h": 0.2707
+      }
+    },
+    {
+      "id": "indicator-strip",
+      "label": "指标条 MA/RSI/MACD/主力净流入",
+      "kind": "region",
+      "hint": "密集技术指标",
+      "rect": {
+        "x": 0.3068,
+        "y": 0.2442,
+        "w": 0.526,
+        "h": 0.0135
+      }
+    },
+    {
+      "id": "l2-book",
+      "label": "五档盘口 LV2",
+      "kind": "region",
+      "hint": "买卖盘价量",
+      "rect": {
+        "x": 0.715,
+        "y": 0.335,
+        "w": 0.1126,
+        "h": 0.1051
+      }
+    },
+    {
+      "id": "breakout-label",
+      "label": "标注：长阳放量突破",
+      "kind": "region",
+      "hint": "关键形态信号",
+      "rect": {
+        "x": 0.6536,
+        "y": 0.274,
+        "w": 0.0563,
+        "h": 0.0133
+      }
+    },
+    {
+      "id": "price-box",
+      "label": "实时价格卡",
+      "kind": "region",
+      "hint": "现价/开高低/成交额",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.5441,
+        "w": 0.7679,
+        "h": 0.1594
+      }
+    },
+    {
+      "id": "lead-inflow",
+      "label": "正文：主力净流入18亿",
+      "kind": "region",
+      "hint": "资金面线索",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.7235,
+        "w": 0.7679,
+        "h": 0.0675
+      }
+    },
+    {
+      "id": "para-eps",
+      "label": "正文：归母净利268.5亿",
+      "kind": "region",
+      "hint": "基本面线索",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.8066,
+        "w": 0.7679,
+        "h": 0.0675
+      }
+    }
+  ]
+}

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { TrajectoryPlayer } from "../../engine";
 import {
   getConfig,
+  getPreview,
   getScenes,
   listTrajectories,
   type EngineConfig,
@@ -21,7 +22,16 @@ const baseRef = ref<InstanceType<typeof TrajectoryPlayer> | null>(null);
 const roleOptions = computed(() => scenes.value[0]?.roles ?? []);
 const prompt = computed(() => roleOptions.value.find((r) => r.key === role.value)?.prompt ?? "");
 
+const previewImage = ref("");
 let doneCount = 0;
+
+async function loadPreview() {
+  try {
+    previewImage.value = (await getPreview(SCENE, role.value)).image;
+  } catch {
+    /* ignore */
+  }
+}
 
 onMounted(async () => {
   try {
@@ -30,6 +40,15 @@ onMounted(async () => {
   } catch {
     /* 引擎未连接，由 App header 提示 */
   }
+  await loadPreview();
+});
+
+// 切换角色：清空两侧运行结果并刷新首图（不再维持旧案例图像）
+watch(role, async () => {
+  ourRef.value?.reset();
+  baseRef.value?.reset();
+  doneCount = 0;
+  await loadPreview();
 });
 
 function runLive() {
@@ -82,6 +101,7 @@ function onDone() {
         :scene="SCENE"
         :role="role"
         :model-label="config?.models.ours.label"
+        :preview-image="previewImage"
         @done="onDone"
       />
       <TrajectoryPlayer
@@ -90,6 +110,7 @@ function onDone() {
         :scene="SCENE"
         :role="role"
         :model-label="config?.models.baseline.label"
+        :preview-image="previewImage"
         @done="onDone"
       />
     </section>

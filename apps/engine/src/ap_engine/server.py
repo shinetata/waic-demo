@@ -67,6 +67,19 @@ def api_cases() -> dict:
         return {"cases": [], "note": f"investigation not ready: {exc}"}
 
 
+@app.get("/api/preview")
+def api_preview(scene: str = "d0-news-portal", role: str = "trader") -> dict:
+    """返回该角色首个 stage 的整页图，供前端运行前即展示。"""
+    try:
+        from ap_engine.environments import get_role
+
+        rs = get_role(scene, role)
+        first = rs.stages[0]
+        return {"image": f"/assets/pages/{first.image}", "stage": first.id}
+    except Exception as exc:  # noqa: BLE001
+        return {"image": "", "note": str(exc)}
+
+
 @app.get("/api/trajectories")
 def api_trajectories() -> dict:
     return {"items": list_trajectories(settings.trajectories_dir)}

@@ -4,7 +4,7 @@ import type { Step } from "@ap/protocol";
 import { assetUrl } from "../api/client";
 
 const props = defineProps<{
-  fullImage: string;
+  previewImage?: string;
   steps: Step[];
   currentIndex: number;
   side: "ours" | "baseline";
@@ -17,19 +17,26 @@ interface Node {
 }
 
 const visible = computed(() => props.steps.slice(0, props.currentIndex + 1));
-
-const nodes = computed<Node[]>(() =>
-  visible.value
-    .filter((s) => s.observation?.rect)
-    .map((s) => {
-      const r = s.observation!.rect!;
-      return { x: (r.x + r.w / 2) * 100, y: (r.y + r.h / 2) * 100, type: s.action.type };
-    }),
-);
-
-const polyPoints = computed(() => nodes.value.map((n) => `${n.x},${n.y}`).join(" "));
-
 const current = computed<Step | null>(() => props.steps[props.currentIndex] ?? null);
+const curStage = computed(() => current.value?.stage ?? "");
+
+// 当前 stage 主图：运行后随 step 切换(home→detail)，运行前回退到首图
+const fullImage = computed(() => {
+  const f = current.value?.observation?.full_image;
+  return f ? assetUrl(f) : props.previewImage || "";
+});
+
+// 轨迹折线/节点只连当前 stage 内的步（不同 stage 图坐标系不同）
+const stageSteps = computed(() =>
+  visible.value.filter((s) => s.stage === curStage.value && s.observation?.rect),
+);
+const nodes = computed<Node[]>(() =>
+  stageSteps.value.map((s) => {
+    const r = s.observation!.rect!;
+    return { x: (r.x + r.w / 2) * 100, y: (r.y + r.h / 2) * 100, type: s.action.type };
+  }),
+);
+const polyPoints = computed(() => nodes.value.map((n) => `${n.x},${n.y}`).join(" "));
 
 const attnRect = computed(() => current.value?.observation?.rect ?? null);
 const attnStyle = computed(() => {

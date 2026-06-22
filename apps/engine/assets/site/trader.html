@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1120, initial-scale=1" />
+    <title>茅台股价单日大涨 3.2% · 财经</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="detail">
+        <div class="detail-back">‹ 返回 财经频道</div>
+        <span class="detail-tag">财经 · 个股</span>
+        <h1 class="detail-title">茅台股价单日大涨 3.2%，机构看高至 2,000 元</h1>
+        <div class="detail-meta"><span>📰 上海证券报</span><span>🕐 2026-05-03 14:48</span><span>👁 阅读 12.4 万</span></div>
+
+        <div class="hero">
+          <svg id="trader-chart" viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid meet">
+            <g stroke="var(--chart-grid)" stroke-width="1" opacity=".7">
+              <line x1="80" y1="60" x2="1110" y2="60" /><line x1="80" y1="120" x2="1110" y2="120" />
+              <line x1="80" y1="180" x2="1110" y2="180" /><line x1="80" y1="240" x2="1110" y2="240" />
+              <line x1="80" y1="290" x2="1110" y2="290" />
+            </g>
+            <g fill="#8fa3c4" font-size="11" font-family="monospace">
+              <text x="1118" y="64">1825</text><text x="1118" y="124">1810</text>
+              <text x="1118" y="184">1795</text><text x="1118" y="244">1780</text><text x="1118" y="294">1765</text>
+            </g>
+            <g fill="#8fa3c4" font-size="11" font-family="monospace" text-anchor="middle">
+              <text x="120" y="318">9:30</text><text x="320" y="318">10:30</text><text x="520" y="318">11:30</text>
+              <text x="720" y="318">13:00</text><text x="920" y="318">14:00</text><text x="1080" y="318">15:00</text>
+            </g>
+            <g font-family="var(--sans)">
+              <text x="22" y="26" fill="#e6efff" font-size="15" font-weight="600">贵州茅台 600519 · 5/3 日内分时</text>
+              <text x="22" y="46" fill="#ff5b5b" font-size="13">▲ 1820.50  +56.62 (+3.21%)</text>
+            </g>
+            <line x1="80" y1="266" x2="380" y2="266" stroke="#36d399" stroke-width="1" stroke-dasharray="3,3" opacity=".8" />
+            <text x="386" y="270" fill="#36d399" font-size="10" font-family="monospace">支撑 1772</text>
+            <g id="breakout-label">
+              <text x="840" y="86" fill="#ff5b5b" font-size="12" font-weight="600">↑ 长阳放量突破</text>
+            </g>
+            <g id="trader-candles"></g>
+            <path id="trader-ma" stroke="var(--chart-ma)" stroke-width="1.5" fill="none" opacity=".9" />
+
+            <!-- 指标条 -->
+            <g id="indicator-strip" font-family="monospace" font-size="9.5">
+              <rect x="298" y="36" width="822" height="17" fill="#0a1226" stroke="#23406a" stroke-width=".6" rx="2" />
+              <text x="305" y="48" fill="#8fa3c4">MA5</text><text x="330" y="48" fill="#ffb84d">1816.4</text>
+              <text x="376" y="48" fill="#8fa3c4">MA10</text><text x="408" y="48" fill="#36d399">1798.2</text>
+              <text x="452" y="48" fill="#8fa3c4">MA60</text><text x="484" y="48" fill="#b9c6df">1742.5</text>
+              <text x="528" y="48" fill="#8fa3c4">RSI</text><text x="552" y="48" fill="#ff7676">68.4</text>
+              <text x="590" y="48" fill="#8fa3c4">MACD</text><text x="626" y="48" fill="#ff5b5b">12.6/7.3</text>
+              <text x="700" y="48" fill="#8fa3c4">量比</text><text x="726" y="48" fill="#ff5b5b">2.31</text>
+              <text x="762" y="48" fill="#8fa3c4">换手</text><text x="788" y="48" fill="#e6efff">1.08%</text>
+              <text x="838" y="48" fill="#8fa3c4">主力净流入</text><text x="900" y="48" fill="#ff5b5b">+18.3亿</text>
+              <text x="958" y="48" fill="#8fa3c4">北向</text><text x="984" y="48" fill="#36d399">+3.8亿</text>
+              <text x="1030" y="48" fill="#8fa3c4">振幅</text><text x="1058" y="48" fill="#e6efff">3.4%</text>
+            </g>
+
+            <!-- 五档盘口 -->
+            <g id="l2-book" font-family="monospace">
+              <rect x="936" y="150" width="176" height="132" fill="rgba(8,15,32,.94)" stroke="#2a4670" stroke-width="1" rx="3" />
+              <text x="944" y="164" fill="#b9c6df" font-size="9">五档盘口 · LV2</text>
+              <text x="1056" y="164" fill="#8fa3c4" font-size="8" text-anchor="end">价</text>
+              <text x="1104" y="164" fill="#8fa3c4" font-size="8" text-anchor="end">量(手)</text>
+              <g font-size="9">
+                <text x="944" y="178" fill="#36d399">卖五</text><text x="1056" y="178" fill="#e6efff" text-anchor="end">1822.0</text><text x="1104" y="178" fill="#8fa3c4" text-anchor="end">12,840</text>
+                <text x="944" y="191" fill="#36d399">卖四</text><text x="1056" y="191" fill="#e6efff" text-anchor="end">1821.5</text><text x="1104" y="191" fill="#8fa3c4" text-anchor="end">8,260</text>
+                <text x="944" y="204" fill="#36d399">卖三</text><text x="1056" y="204" fill="#e6efff" text-anchor="end">1821.0</text><text x="1104" y="204" fill="#8fa3c4" text-anchor="end">15,420</text>
+                <text x="944" y="217" fill="#36d399">卖二</text><text x="1056" y="217" fill="#e6efff" text-anchor="end">1820.5</text><text x="1104" y="217" fill="#ffb84d" text-anchor="end">22,180</text>
+                <text x="944" y="230" fill="#36d399">卖一</text><text x="1056" y="230" fill="#e6efff" text-anchor="end">1820.0</text><text x="1104" y="230" fill="#8fa3c4" text-anchor="end">9,600</text>
+                <line x1="944" y1="235" x2="1104" y2="235" stroke="#34507c" stroke-dasharray="2,2" />
+                <text x="944" y="248" fill="#ff5b5b">买一</text><text x="1056" y="248" fill="#e6efff" text-anchor="end">1819.5</text><text x="1104" y="248" fill="#ff5b5b" text-anchor="end">18,500</text>
+                <text x="944" y="261" fill="#ff5b5b">买二</text><text x="1056" y="261" fill="#e6efff" text-anchor="end">1819.0</text><text x="1104" y="261" fill="#8fa3c4" text-anchor="end">14,260</text>
+                <text x="944" y="274" fill="#ff5b5b">买三</text><text x="1056" y="274" fill="#e6efff" text-anchor="end">1818.0</text><text x="1104" y="274" fill="#8fa3c4" text-anchor="end">11,820</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div class="hero-caption">图：贵州茅台 5/3 分时 K 线，单日涨幅 3.21%（来源：东方财富）</div>
+
+        <div class="data-card" id="price-box">
+          <div class="lbl">贵州茅台 · 600519 · 实时</div>
+          <div class="price-row"><div class="price-now">1,820.50</div><div class="price-chg">▲ +56.62 (+3.21%)</div></div>
+          <div class="price-detail">
+            <div>开盘 <b>1,768.00</b></div><div>最高 <b>1,825.30</b></div>
+            <div>最低 <b>1,765.40</b></div><div>成交额 <b>92.3 亿</b></div>
+          </div>
+        </div>
+
+        <div class="detail-body">
+          <p id="lead-inflow">5 月 3 日 A 股收盘，贵州茅台报 1,820.50 元，单日涨幅 3.21%，<span class="hl">主力资金净流入超 18 亿元</span>。券商研报普遍上调目标价至 2,000 元区间。</p>
+          <p id="para-eps">消息面上，公司一季度营收同比增长 12.4%，<span class="hl">归母净利润 268.5 亿</span>，超出市场一致预期。高端白酒销售持续强劲，渠道库存回归健康水位。</p>
+          <p>技术面来看，今日 K 线收出长阳线，突破 60 日均线压制，量能配合放大。MACD 金叉初现，短期或挑战 1,850 元前高。</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 确定性生成日内 K 线（早盘震荡 → 午后放量拉升），保证每次渲染一致
+      (function () {
+        const N = 34, x0 = 96, step = 30, bodyW = 11;
+        const py = (p) => 60 + ((1825 - p) / 60) * 230;
+        const closes = [];
+        for (let i = 0; i < N; i++) {
+          let p = i < 16 ? 1772 + Math.sin(i * 0.7) * 6 : 1778 + (i - 16) * 2.7 + Math.sin(i * 0.8) * 2;
+          closes.push(Math.min(p, 1825));
+        }
+        const cg = document.getElementById("trader-candles");
+        let prev = 1768;
+        for (let i = 0; i < N; i++) {
+          const o = prev, c = closes[i];
+          const h = Math.max(o, c) + 1.5 + (i % 3), l = Math.min(o, c) - 1.5 - (i % 2);
+          const up = c >= o, col = up ? "#ff5b5b" : "#36d399";
+          const cx = x0 + i * step;
+          const yTop = py(Math.max(o, c)), yBot = py(Math.min(o, c));
+          const wick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          wick.setAttribute("x1", cx); wick.setAttribute("x2", cx);
+          wick.setAttribute("y1", py(h)); wick.setAttribute("y2", py(l));
+          wick.setAttribute("stroke", col); wick.setAttribute("stroke-width", "1");
+          cg.appendChild(wick);
+          const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          r.setAttribute("x", cx - bodyW / 2); r.setAttribute("y", yTop);
+          r.setAttribute("width", bodyW); r.setAttribute("height", Math.max(2, yBot - yTop));
+          r.setAttribute("fill", col);
+          cg.appendChild(r);
+          prev = c;
+        }
+        // MA 均线
+        const pts = [];
+        for (let i = 0; i < N; i++) {
+          const w = closes.slice(Math.max(0, i - 4), i + 1);
+          const ma = w.reduce((a, b) => a + b, 0) / w.length;
+          pts.push(x0 + i * step + "," + py(ma).toFixed(1));
+        }
+        document.getElementById("trader-ma").setAttribute("d", "M" + pts.join(" L"));
+      })();
+    </script>
+  </body>
+</html>

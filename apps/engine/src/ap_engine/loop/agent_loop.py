@@ -100,6 +100,7 @@ async def run_trajectory(
     tokens = TokenUsage(prompt=0, completion=0, total=0)
     seen_elements: set[str] = set()
     prev_sig: Optional[str] = None
+    repeat = 0
     reached_eos = False
     t0 = time.perf_counter()
     max_steps = settings.max_steps
@@ -141,10 +142,14 @@ async def run_trajectory(
             reached_eos = True
             break
 
-        # 防重复（卡死保护）：连续两步完全相同的非 none 动作 → 终止
+        # 防重复（卡死保护）：连续 3 次完全相同的非 none 动作才终止（给模型自我纠正空间）
         sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
         if sig == prev_sig and action.type != "none":
-            break
+            repeat += 1
+            if repeat >= 2:
+                break
+        else:
+            repeat = 0
         prev_sig = sig
 
         obs = env.step(action)
@@ -162,9 +167,12 @@ async def run_trajectory(
         reached_eos=reached_eos,
     )
     last = steps[-1] if steps else None
+    final_output = role_spec.output or (
+        last.action.label if (last and last.action.type == "eos") else None
+    )
     result = TrajectoryResult(
         conclusion=last.thought if last else None,
-        output=last.action.label if (last and last.action.type == "eos") else None,
+        output=final_output,
         stats=stats,
     )
 

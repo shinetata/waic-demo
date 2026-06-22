@@ -4,28 +4,23 @@ import StageView from "./StageView.vue";
 import MindStream from "./MindStream.vue";
 import StatsPanel from "./StatsPanel.vue";
 import { usePlayer } from "./usePlayer";
-import { assetUrl } from "../api/client";
 
 const props = defineProps<{
   side: "ours" | "baseline";
   scene: string;
   role: string;
   modelLabel?: string;
+  previewImage?: string;
   autostart?: boolean;
 }>();
 
 const player = usePlayer(props.side);
 const { steps, currentIndex, status, result, intent, model } = player;
 
-const fullImage = computed(() => {
-  const o = steps.value[0]?.observation;
-  return o?.full_image ? assetUrl(o.full_image) : "";
-});
 const persona = computed(() => intent.value?.persona || props.role);
 const label = computed(() => props.modelLabel || model.value?.name || props.side);
 const statusText = computed(
-  () =>
-    ({ idle: "待运行", running: "观察中…", done: "完成", error: "出错" })[status.value],
+  () => ({ idle: "待运行", running: "观察中…", done: "完成", error: "出错" })[status.value],
 );
 
 function startLive() {
@@ -59,7 +54,7 @@ defineExpose({ startLive, startReplay, reset, status, result, currentIndex });
       <span class="st" :data-s="status">{{ statusText }}</span>
     </div>
     <StageView
-      :full-image="fullImage"
+      :preview-image="previewImage"
       :steps="steps"
       :current-index="currentIndex"
       :side="side"
@@ -74,6 +69,16 @@ defineExpose({ startLive, startReplay, reset, status, result, currentIndex });
       />
     </div>
     <StatsPanel :result="result" :side="side" />
+
+    <transition name="ocard">
+      <div v-if="status === 'done' && result?.output" class="output-card" :class="side">
+        <span class="oc-tag">产出</span>
+        <div class="oc-text">
+          <div class="oc-main">{{ result.output }}</div>
+          <div v-if="result.conclusion" class="oc-sub">{{ result.conclusion }}</div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -120,5 +125,50 @@ defineExpose({ startLive, startReplay, reset, status, result, currentIndex });
 }
 .lower {
   height: 240px;
+}
+.output-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--ours-soft);
+  border: 1px solid rgba(0, 102, 255, 0.25);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.baseline .output-card {
+  background: var(--baseline-soft);
+  border-color: rgba(255, 107, 53, 0.3);
+}
+.oc-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--ours);
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.baseline .oc-tag {
+  background: var(--baseline);
+}
+.oc-main {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.55;
+}
+.oc-sub {
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+.ocard-enter-active {
+  transition: all 0.5s ease;
+}
+.ocard-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
 }
 </style>

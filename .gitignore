@@ -17,6 +17,9 @@ dist/
 apps/engine/trajectories/*.json
 apps/engine/assets/runtime/
 
+# playwright 浏览器（构建期生成长图用，体积大不入库）
+apps/engine/.pw-browsers/
+
 # caches
 .pytest_cache/
 .ruff_cache/

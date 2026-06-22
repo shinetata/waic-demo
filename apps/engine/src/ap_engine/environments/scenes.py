@@ -1,49 +1,47 @@
-"""场景与角色定义（阶段一：基于真实实景大图的图像主动感知）。
+"""场景与角色定义（D0：新闻门户网页多 stage 主动感知）。
 
-注：dense 大图为实景照片（交易桌 / 足球赛）。这里据图像真实内容标注语义兴趣点，
-作为 element grounding 锚点；真实模型也可自由用 region 坐标。
-web 阶段会另建"新闻门户网页"并用 Playwright 截长图作为 d0 的核心叙事场景。
+页面长图与 element manifest 由 tools/render_pages.py 生成（assets/pages + assets/manifests）。
+每角色含两个 stage：home（首页）→ detail（详情页）。
+模型流程：首页扫描分区/热搜 → 点击目标新闻 → 进入详情页多区域 see/zoom → EOS 给出产出。
 """
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from ap_engine.environments.base import ElementSpec, RoleSpec, SceneSpec, StageSpec
 from ap_protocol import Rect
 
-
-def _el(
-    eid: str, label: str, x: float, y: float, w: float, h: float, hint: str | None = None
-) -> ElementSpec:
-    return ElementSpec(id=eid, label=label, rect=Rect(x=x, y=y, w=w, h=h), hint=hint)
+_MANIFEST_DIR = Path(__file__).resolve().parents[3] / "assets" / "manifests"
 
 
-TRADER_DESK = StageSpec(
-    id="desk",
-    title="交易桌实景",
-    image="trader.jpg",
-    elements=[
-        _el("main_chart", "中央主屏 · K线主图", 0.30, 0.10, 0.29, 0.30, "日内分时/K线走势与放量"),
-        _el("laptop_quotes", "左侧笔记本 · 行情涨跌表", 0.00, 0.12, 0.22, 0.30, "红绿涨跌的个股报价"),
-        _el("order_panel", "主屏右侧 · 交易/盘口面板", 0.58, 0.10, 0.11, 0.30, "买卖盘口与下单区"),
-        _el("right_screen", "右侧屏 · 行情列表(蓝光)", 0.67, 0.00, 0.30, 0.40, "自选股列表与指数"),
-        _el("tablet_chart", "桌面平板 · K线(黄圈标注)", 0.34, 0.60, 0.30, 0.32, "被圈出的关键形态"),
-        _el("keyboard", "键盘区", 0.40, 0.50, 0.30, 0.16, "操作输入区(无行情信息)"),
-    ],
-)
+def _load_manifest(name: str) -> tuple[str, dict[str, ElementSpec]]:
+    data = json.loads((_MANIFEST_DIR / f"{name}.json").read_text(encoding="utf-8"))
+    by_id: dict[str, ElementSpec] = {}
+    for e in data["elements"]:
+        by_id[e["id"]] = ElementSpec(
+            id=e["id"],
+            label=e["label"],
+            rect=Rect(**e["rect"]),
+            kind=e.get("kind", "region"),
+            hint=e.get("hint"),
+            to=e.get("to"),
+        )
+    return data["image"], by_id
 
-FAN_MATCH = StageSpec(
-    id="match",
-    title="足球比赛实景",
-    image="fan.jpg",
-    elements=[
-        _el("attacker", "白衣持球球员(12号)", 0.33, 0.26, 0.21, 0.58, "正在带球突破的进攻球员"),
-        _el("defender", "深色球衣防守球员", 0.55, 0.20, 0.18, 0.62, "上前逼抢的防守球员"),
-        _el("ball", "地面足球", 0.45, 0.74, 0.13, 0.17, "比赛用球的位置"),
-        _el("jersey12", "白衣球员号码(12)", 0.42, 0.45, 0.10, 0.11, "确认球员号码"),
-        _el("captain", "右上 · 队长(袖标)", 0.82, 0.05, 0.15, 0.52, "远处接应球员"),
-        _el("bench", "左侧 · 替补/训练衣球员", 0.00, 0.16, 0.17, 0.72, "场边粉色训练衣球员"),
-    ],
-)
+
+_HOME_IMG, _HOME = _load_manifest("home")
+_TRADER_IMG, _TRADER = _load_manifest("detail-trader")
+_FAN_IMG, _FAN = _load_manifest("detail-fan")
+
+
+def _pick(pool: dict[str, ElementSpec], ids: list[str]) -> list[ElementSpec]:
+    return [pool[i] for i in ids if i in pool]
+
+
+def _home_stage(item_ids: list[str]) -> StageSpec:
+    return StageSpec(id="home", title="新闻门户首页", image=_HOME_IMG, elements=_pick(_HOME, item_ids))
 
 
 SCENES: dict[str, SceneSpec] = {
@@ -54,16 +52,36 @@ SCENES: dict[str, SceneSpec] = {
             "trader": RoleSpec(
                 key="trader",
                 persona="TRADER · 短线交易员",
-                prompt="盘后复盘我的交易桌：扫描各屏幕的行情与 K 线，判断今天的主线异动和资金强弱。",
-                goal_hint="优先看中央主屏 K 线走势与放量，再核对左侧笔记本的涨跌表，必要时放大确认；跳过键盘等无信息区域。",
-                stages=[TRADER_DESK],
+                prompt="盘后在新闻门户复盘：先在首页找到财经头条，进入详情页核对 K 线、技术指标、五档盘口与资金面，判断明日是否加仓。",
+                goal_hint="首页跳过顶部广告，定位『财经要闻』里的茅台头条并点击进入；详情页依次看 K线放量、指标条(主力净流入)、五档盘口、价格卡、正文净利，最后给出明日操作结论。",
+                stages=[
+                    _home_stage(
+                        ["nav-finance", "banner", "section-finance", "item-finance", "market-card", "stock-mt", "hot-list"]
+                    ),
+                    StageSpec(
+                        id="detail",
+                        title="财经详情页",
+                        image=_TRADER_IMG,
+                        elements=list(_TRADER.values()),
+                    ),
+                ],
+                output="明日操作：试探性加仓。依据：长阳放量突破 1825 / 主力净流入 +18.3 亿 / 归母净利 268.5 亿超预期。",
             ),
             "fan": RoleSpec(
                 key="fan",
                 persona="FAN · 球迷",
-                prompt="看这场足球比赛：找出持球进攻的球员、球衣号码、球的位置和攻防态势。",
-                goal_hint="优先锁定持球的白衣球员并放大确认号码，再看防守球员与球的位置；跳过场边与远景。",
-                stages=[FAN_MATCH],
+                prompt="想第一时间知道国足比赛结果：在新闻门户首页找到体育头条，进入详情页确认比分、进球者、时间地点与技术统计。",
+                goal_hint="首页定位『体育快讯』里的国足头条并点击进入；详情页看比分卡、迷你球场进球示意、武磊号码、技术统计、事件轴，最后给出赛果与集锦结论。",
+                stages=[
+                    _home_stage(["nav-sports", "banner", "section-sports", "item-sports", "hot-list"]),
+                    StageSpec(
+                        id="detail",
+                        title="体育详情页",
+                        image=_FAN_IMG,
+                        elements=list(_FAN.values()),
+                    ),
+                ],
+                output="赛果：中国 1:0 日本 · 武磊 #7 · 87' 补射破门 · 上海体育场。下一步：转发球迷群并查看进球集锦。",
             ),
         },
     )
