@@ -434,3 +434,175 @@ body {
   color: var(--ink-mute);
   margin-top: 4px;
 }
+
+/* ── D0 深链页面：财经列表 / 行情终端 / 财报 / 机构研报 ── */
+.crumb {
+  font-size: 13px;
+  color: var(--ink-mute);
+  padding: 14px 0 4px;
+}
+.crumb b {
+  color: var(--link);
+  font-weight: 600;
+}
+.page-h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 6px 0 4px;
+}
+.page-sub {
+  font-size: 13px;
+  color: var(--ink-mute);
+  margin-bottom: 14px;
+}
+.next-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 0 8px;
+  padding: 16px 20px;
+  background: linear-gradient(120deg, #eef4ff, #f7faff);
+  border: 1px solid #cfe0ff;
+  border-left: 4px solid var(--link);
+  border-radius: 11px;
+  color: var(--link);
+  font-size: 16px;
+  font-weight: 700;
+}
+.next-link .arrow {
+  font-size: 20px;
+}
+.next-link small {
+  display: block;
+  color: var(--ink-dim);
+  font-weight: 500;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+/* 通用面板卡片 */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 16px 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+.panel > h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  padding-left: 10px;
+  border-left: 3px solid var(--brand);
+}
+.panel > h3 .sub {
+  font-size: 11px;
+  color: var(--ink-mute);
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+/* 财务 / 资金 / 评级表格 */
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.tbl th,
+.tbl td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.tbl th {
+  font-size: 12px;
+  color: var(--ink-mute);
+  font-weight: 600;
+  background: var(--surface-2);
+}
+.tbl td.num,
+.tbl th.num {
+  font-family: var(--mono);
+  text-align: right;
+}
+.up-txt {
+  color: var(--up);
+  font-weight: 600;
+}
+.down-txt {
+  color: var(--down);
+  font-weight: 600;
+}
+
+/* 需要 zoom 才能看清的脚注 / 关键小字 */
+.footnote {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+  margin-top: 10px;
+  padding: 7px 10px;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+.fineprint {
+  font-size: 10px;
+  color: var(--ink-mute);
+}
+
+/* 估值 / KPI 四宫格 */
+.metric-quad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.metric-box {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 12px;
+}
+.metric-box .lbl {
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+.metric-box .val {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* 评级徽章 */
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 5px;
+}
+.badge.buy {
+  background: #fdecec;
+  color: var(--up);
+}
+.badge.hold {
+  background: #fff3e0;
+  color: #d2811a;
+}
+.badge.neutral {
+  background: var(--surface-2);
+  color: var(--ink-dim);
+}
+
+/* 资金流向条 */
+.flow-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  overflow: hidden;
+  display: flex;
+}
+.flow-bar i {
+  display: block;
+  height: 100%;
+}

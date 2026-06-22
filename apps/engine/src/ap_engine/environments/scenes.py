@@ -34,6 +34,11 @@ def _load_manifest(name: str) -> tuple[str, dict[str, ElementSpec]]:
 _HOME_IMG, _HOME = _load_manifest("home")
 _TRADER_IMG, _TRADER = _load_manifest("detail-trader")
 _FAN_IMG, _FAN = _load_manifest("detail-fan")
+# D0 长程深链（trader 专用）：财经列表 → 行情终端 → 财报 → 机构研报
+_FINLIST_IMG, _FINLIST = _load_manifest("finance-list")
+_MARKET_IMG, _MARKET = _load_manifest("market-data")
+_REPORT_IMG, _REPORT = _load_manifest("report")
+_CONSENSUS_IMG, _CONSENSUS = _load_manifest("consensus")
 
 
 def _pick(pool: dict[str, ElementSpec], ids: list[str]) -> list[ElementSpec]:
@@ -52,11 +57,16 @@ SCENES: dict[str, SceneSpec] = {
             "trader": RoleSpec(
                 key="trader",
                 persona="TRADER · 短线交易员",
-                prompt="帮我看看茅台明天还能不能加仓，从新闻门户上找找最新的财经消息和行情数据。",
-                goal_hint="",
+                prompt="帮我看看茅台明天还能不能加仓？",
                 stages=[
                     _home_stage(
                         ["nav-finance", "banner", "section-finance", "item-finance", "market-card", "stock-mt", "hot-list"]
+                    ),
+                    StageSpec(
+                        id="finance-list",
+                        title="财经要闻列表",
+                        image=_FINLIST_IMG,
+                        elements=list(_FINLIST.values()),
                     ),
                     StageSpec(
                         id="detail",
@@ -64,14 +74,30 @@ SCENES: dict[str, SceneSpec] = {
                         image=_TRADER_IMG,
                         elements=list(_TRADER.values()),
                     ),
+                    StageSpec(
+                        id="market-data",
+                        title="专业行情终端",
+                        image=_MARKET_IMG,
+                        elements=list(_MARKET.values()),
+                    ),
+                    StageSpec(
+                        id="report",
+                        title="公司财报摘要",
+                        image=_REPORT_IMG,
+                        elements=list(_REPORT.values()),
+                    ),
+                    StageSpec(
+                        id="consensus",
+                        title="机构评级汇总",
+                        image=_CONSENSUS_IMG,
+                        elements=list(_CONSENSUS.values()),
+                    ),
                 ],
-                output="明日操作：试探性加仓。依据：长阳放量突破 1825 / 主力净流入 +18.3 亿 / 归母净利 268.5 亿超预期。",
             ),
             "fan": RoleSpec(
                 key="fan",
                 persona="FAN · 球迷",
                 prompt="国足今天踢日本了吧？帮我看看比分和进球情况。",
-                goal_hint="",
                 stages=[
                     _home_stage(["nav-sports", "banner", "section-sports", "item-sports", "hot-list"]),
                     StageSpec(
@@ -81,7 +107,6 @@ SCENES: dict[str, SceneSpec] = {
                         elements=list(_FAN.values()),
                     ),
                 ],
-                output="赛果：中国 1:0 日本 · 武磊 #7 · 87' 补射破门 · 上海体育场。下一步：转发球迷群并查看进球集锦。",
             ),
         },
     )

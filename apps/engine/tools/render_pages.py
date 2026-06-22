@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -49,6 +50,7 @@ PAGESPEC: dict[str, dict] = {
             "price-box": ("实时价格卡", "region", "现价/开高低/成交额", None),
             "lead-inflow": ("正文：主力净流入18亿", "region", "资金面线索", None),
             "para-eps": ("正文：归母净利268.5亿", "region", "基本面线索", None),
+            "link-market": ("查看完整行情 · Level-2", "link", "点击进入专业行情终端页", "market-data"),
         },
     },
     "detail-fan": {
@@ -66,6 +68,61 @@ PAGESPEC: dict[str, dict] = {
             "goal-detail": ("正文：87'武磊补射破门", "region", "进球者/时间", None),
         },
     },
+    # ── D0 长程深链新增页（trader 角色专用：财经列表→详情→行情终端→财报→机构研报） ──
+    "finance-list": {
+        "file": "finance-list.html",
+        "elements": {
+            "list-nav": ("频道导航 · 财经", "region", "频道入口", None),
+            "list-title": ("财经要闻 标题", "region", "页面标题", None),
+            "filter-bar": ("筛选/排序条", "region", "个股/宏观/板块筛选", None),
+            "item-maotai": ("头条：茅台获5家券商上调评级", "link", "点击进入茅台详情页", "detail-trader"),
+            "item-baijiu": ("白酒板块反弹3.1%", "region", "板块联动", None),
+            "item-rrr": ("央行降准0.5%", "region", "宏观新闻", None),
+            "item-northbound": ("北向资金净买入120亿", "region", "资金面新闻", None),
+            "item-cpi": ("4月CPI同比+0.6%", "region", "数据新闻", None),
+            "side-calendar": ("侧栏 · 财经日历", "region", "本周重要事件", None),
+            "side-ranking": ("侧栏 · 个股人气榜", "region", "热门个股", None),
+        },
+    },
+    "market-data": {
+        "file": "market-data.html",
+        "elements": {
+            "md-header": ("标题 · 行情终端", "region", "页面标题", None),
+            "md-kline": ("日K线图", "region", "近3月日线+均线+量能", None),
+            "md-capital": ("资金流向明细表", "region", "主力/超大单/北向分项", None),
+            "md-mainflow": ("主力净额 +18.33亿", "region", "关键资金数字，放大确认", None),
+            "md-indicators": ("技术指标面板", "region", "MACD/RSI/KDJ/BOLL", None),
+            "md-valuation": ("估值卡", "region", "PE/PB/股息率/市值", None),
+            "md-pe-pct": ("PE历史分位 34.2%", "region", "关键估值小字，放大确认", None),
+            "link-report": ("查看公司财报与公告", "link", "点击进入财报页", "report"),
+        },
+    },
+    "report": {
+        "file": "report.html",
+        "elements": {
+            "rp-header": ("标题 · 2026一季报", "region", "财报标题", None),
+            "rp-table": ("主要财务数据表", "region", "营收/净利/毛利/现金流", None),
+            "rp-revenue": ("营业收入 514.6亿 +12.4%", "region", "营收行", None),
+            "rp-profit": ("归母净利 268.5亿 +11.6%", "region", "净利行", None),
+            "rp-margin": ("毛利率 91.8%", "region", "毛利率行", None),
+            "rp-cashflow": ("经营现金流 -36.5%", "region", "现金流异常项", None),
+            "rp-footnote": ("脚注 · 口径说明", "region", "关键小字：合并口径/非经常性损益，放大看清", None),
+            "link-consensus": ("查看机构评级汇总", "link", "点击进入机构研报页", "consensus"),
+        },
+    },
+    "consensus": {
+        "file": "consensus.html",
+        "elements": {
+            "cs-header": ("标题 · 机构评级汇总", "region", "页面标题", None),
+            "cs-overview": ("评级总览四宫格", "region", "一致预期/最高/空间/分布", None),
+            "cs-target-avg": ("一致预期目标价 2005", "region", "一致预期", None),
+            "cs-target-high": ("最高目标价 2150", "region", "关键数字，放大确认", None),
+            "cs-rating-dist": ("评级分布 买入12", "region", "评级统计", None),
+            "cs-table": ("各机构研报对比表", "region", "中金/中信/华泰目标价", None),
+            "cs-latest": ("最新研报摘要", "region", "中金05-03研报", None),
+            "cs-risk": ("风险提示小字", "region", "关键小字：现金流风险/免责，放大看清", None),
+        },
+    },
 }
 
 _BBOX_JS = """(sel) => {
@@ -78,7 +135,12 @@ _BBOX_JS = """(sel) => {
 
 def main() -> None:
     with sync_playwright() as p:
-        browser = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+        # 可选：通过 AP_CHROMIUM 显式指定 chromium 可执行文件，绕过 playwright 架构自动发现
+        _launch_kwargs: dict = {"args": ["--no-sandbox", "--disable-dev-shm-usage"]}
+        _exe = os.environ.get("AP_CHROMIUM")
+        if _exe:
+            _launch_kwargs["executable_path"] = _exe
+        browser = p.chromium.launch(**_launch_kwargs)
         for name, spec in PAGESPEC.items():
             page = browser.new_page(viewport={"width": 1120, "height": 900}, device_scale_factor=2)
             page.goto((SITE / spec["file"]).as_uri(), wait_until="networkidle")

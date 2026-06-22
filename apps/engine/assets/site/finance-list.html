@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1120, initial-scale=1" />
+    <title>财经频道 · 要闻列表 · 新闻门户</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="np-header">
+        <div class="np-logo">日报头条<span>NEWS PORTAL</span></div>
+        <input class="np-search" placeholder="🔍 搜索新闻 / 股票 / 话题" readonly />
+      </div>
+
+      <div class="np-nav" id="list-nav">
+        <a>推荐</a>
+        <a class="active">财经</a>
+        <a>体育</a><a>健康</a><a>科技</a><a>娱乐</a><a>汽车</a><a>房产</a>
+      </div>
+
+      <div class="crumb">首页 › <b>财经频道</b> › 要闻</div>
+      <div class="page-h1" id="list-title">财经要闻 · 个股与宏观</div>
+      <div class="page-sub">实时更新 · 按相关度与热度排序</div>
+
+      <div class="panel" id="filter-bar" style="display:flex;gap:10px;align-items:center;padding:10px 16px">
+        <span style="font-size:13px;color:var(--ink-dim)">筛选：</span>
+        <span class="badge buy">个股</span>
+        <span class="badge neutral">宏观</span>
+        <span class="badge neutral">板块</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--ink-mute)">排序：相关度 ▾</span>
+      </div>
+
+      <div class="np-grid">
+        <div>
+          <ul class="news-list">
+            <li class="news-item lead" id="item-maotai">
+              <div class="news-thumb" style="background: linear-gradient(135deg, #d92626, #ff8a8a)"></div>
+              <div class="news-body">
+                <div class="news-title">【机构】茅台获 5 家券商集中上调评级，目标价看高至 2,000 元</div>
+                <div class="news-meta"><span class="tag">个股 · 600519</span><span>11 分钟前</span><span>上海证券报</span></div>
+                <div class="news-summary">主力资金净流入超 18 亿，长阳放量突破 60 日均线，一季报归母净利 268.5 亿超预期。点击查看完整行情、财报与机构研报 →</div>
+              </div>
+            </li>
+            <li class="news-item" id="item-baijiu">
+              <div class="news-thumb" style="background: linear-gradient(135deg, #c0392b, #e8b04b)"></div>
+              <div class="news-body">
+                <div class="news-title">白酒板块整体反弹 3.1%，五粮液、泸州老窖同步走强</div>
+                <div class="news-meta"><span class="tag">板块</span><span>26 分钟前</span></div>
+                <div class="news-summary">高端白酒动销改善预期升温，板块资金面回暖...</div>
+              </div>
+            </li>
+            <li class="news-item" id="item-rrr">
+              <div class="news-thumb" style="background: linear-gradient(135deg, #1aa260, #5dffb1)"></div>
+              <div class="news-body">
+                <div class="news-title">央行 5 月降准 0.5 个百分点，释放长期资金约 1 万亿</div>
+                <div class="news-meta"><span class="tag">宏观</span><span>32 分钟前</span></div>
+                <div class="news-summary">流动性充裕预期推动 A 股全线上扬，沪指突破 3,500 点...</div>
+              </div>
+            </li>
+            <li class="news-item" id="item-northbound">
+              <div class="news-thumb" style="background: linear-gradient(135deg, #2c3e66, #5a7bb5)"></div>
+              <div class="news-body">
+                <div class="news-title">北向资金单日净买入 120 亿，贵州茅台居净买入榜首</div>
+                <div class="news-meta"><span class="tag">资金</span><span>1 小时前</span></div>
+                <div class="news-summary">外资连续 3 日加仓核心资产，消费龙头获重点配置...</div>
+              </div>
+            </li>
+            <li class="news-item" id="item-cpi">
+              <div class="news-thumb" style="background: linear-gradient(135deg, #6b7280, #aab2bd)"></div>
+              <div class="news-body">
+                <div class="news-title">4 月 CPI 同比上涨 0.6%，PPI 降幅收窄</div>
+                <div class="news-meta"><span class="tag">数据</span><span>2 小时前</span></div>
+                <div class="news-summary">物价温和回升，需求侧逐步修复...</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="sidebar-card" id="side-calendar">
+            <h4>财经日历 <span>本周</span></h4>
+            <div class="stock-row"><span class="stock-name">5/06 茅台股东大会</span><span class="stock-chg up">关注</span></div>
+            <div class="stock-row"><span class="stock-name">5/09 4 月社融数据</span><span class="stock-chg">10:00</span></div>
+            <div class="stock-row"><span class="stock-name">5/10 白酒动销月报</span><span class="stock-chg">—</span></div>
+          </div>
+
+          <div class="sidebar-card" id="side-ranking">
+            <h4>个股人气榜 <span>实时</span></h4>
+            <ol class="hot-list">
+              <li>贵州茅台 600519</li>
+              <li>宁德时代 300750</li>
+              <li>比亚迪 002594</li>
+              <li>五粮液 000858</li>
+              <li>中际旭创 300308</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

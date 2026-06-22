@@ -1,0 +1,129 @@
+{
+  "stage": "finance-list",
+  "image": "finance-list.png",
+  "width": 1120,
+  "height": 1079,
+  "elements": [
+    {
+      "id": "list-nav",
+      "label": "频道导航 · 财经",
+      "kind": "region",
+      "hint": "频道入口",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.0723,
+        "w": 0.9714,
+        "h": 0.0533
+      }
+    },
+    {
+      "id": "list-title",
+      "label": "财经要闻 标题",
+      "kind": "region",
+      "hint": "页面标题",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.1659,
+        "w": 0.9714,
+        "h": 0.0361
+      }
+    },
+    {
+      "id": "filter-bar",
+      "label": "筛选/排序条",
+      "kind": "region",
+      "hint": "个股/宏观/板块筛选",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.2386,
+        "w": 0.9714,
+        "h": 0.0408
+      }
+    },
+    {
+      "id": "item-maotai",
+      "label": "头条：茅台获5家券商上调评级",
+      "kind": "link",
+      "hint": "点击进入茅台详情页",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.2943,
+        "w": 0.6607,
+        "h": 0.1609
+      },
+      "to": "detail-trader"
+    },
+    {
+      "id": "item-baijiu",
+      "label": "白酒板块反弹3.1%",
+      "kind": "region",
+      "hint": "板块联动",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.4662,
+        "w": 0.6607,
+        "h": 0.1131
+      }
+    },
+    {
+      "id": "item-rrr",
+      "label": "央行降准0.5%",
+      "kind": "region",
+      "hint": "宏观新闻",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.5904,
+        "w": 0.6607,
+        "h": 0.1131
+      }
+    },
+    {
+      "id": "item-northbound",
+      "label": "北向资金净买入120亿",
+      "kind": "region",
+      "hint": "资金面新闻",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.7146,
+        "w": 0.6607,
+        "h": 0.1131
+      }
+    },
+    {
+      "id": "item-cpi",
+      "label": "4月CPI同比+0.6%",
+      "kind": "region",
+      "hint": "数据新闻",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.8388,
+        "w": 0.6607,
+        "h": 0.1131
+      }
+    },
+    {
+      "id": "side-calendar",
+      "label": "侧栏 · 财经日历",
+      "kind": "region",
+      "hint": "本周重要事件",
+      "rect": {
+        "x": 0.7,
+        "y": 0.2943,
+        "w": 0.2857,
+        "h": 0.1766
+      }
+    },
+    {
+      "id": "side-ranking",
+      "label": "侧栏 · 个股人气榜",
+      "kind": "region",
+      "hint": "热门个股",
+      "rect": {
+        "x": 0.7,
+        "y": 0.4856,
+        "w": 0.2857,
+        "h": 0.259
+      }
+    }
+  ]
+}

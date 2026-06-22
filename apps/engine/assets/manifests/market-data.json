@@ -1,0 +1,105 @@
+{
+  "stage": "market-data",
+  "image": "market-data.png",
+  "width": 1120,
+  "height": 1516,
+  "elements": [
+    {
+      "id": "md-header",
+      "label": "标题 · 行情终端",
+      "kind": "region",
+      "hint": "页面标题",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.0287,
+        "w": 0.9714,
+        "h": 0.0257
+      }
+    },
+    {
+      "id": "md-kline",
+      "label": "日K线图",
+      "kind": "region",
+      "hint": "近3月日线+均线+量能",
+      "rect": {
+        "x": 0.0312,
+        "y": 0.1154,
+        "w": 0.9375,
+        "h": 0.2131
+      }
+    },
+    {
+      "id": "md-capital",
+      "label": "资金流向明细表",
+      "kind": "region",
+      "hint": "主力/超大单/北向分项",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.3503,
+        "w": 0.9714,
+        "h": 0.2521
+      }
+    },
+    {
+      "id": "md-mainflow",
+      "label": "主力净额 +18.33亿",
+      "kind": "region",
+      "hint": "关键资金数字，放大确认",
+      "rect": {
+        "x": 0.7139,
+        "y": 0.4093,
+        "w": 0.2548,
+        "h": 0.0259
+      }
+    },
+    {
+      "id": "md-indicators",
+      "label": "技术指标面板",
+      "kind": "region",
+      "hint": "MACD/RSI/KDJ/BOLL",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.613,
+        "w": 0.9714,
+        "h": 0.155
+      }
+    },
+    {
+      "id": "md-valuation",
+      "label": "估值卡",
+      "kind": "region",
+      "hint": "PE/PB/股息率/市值",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.7786,
+        "w": 0.9714,
+        "h": 0.1229
+      }
+    },
+    {
+      "id": "md-pe-pct",
+      "label": "PE历史分位 34.2%",
+      "kind": "region",
+      "hint": "关键估值小字，放大确认",
+      "rect": {
+        "x": 0.0312,
+        "y": 0.8706,
+        "w": 0.9375,
+        "h": 0.0196
+      }
+    },
+    {
+      "id": "link-report",
+      "label": "查看公司财报与公告",
+      "kind": "link",
+      "hint": "点击进入财报页",
+      "rect": {
+        "x": 0.0143,
+        "y": 0.9159,
+        "w": 0.9714,
+        "h": 0.0521
+      },
+      "to": "report"
+    }
+  ]
+}

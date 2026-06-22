@@ -23,7 +23,6 @@ class PolicyInput:
     max_steps: int
     history: list[Step]
     observation: EnvObservation
-    goal_hint: str = ""
 
 
 @dataclass

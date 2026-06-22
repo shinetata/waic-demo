@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import StageView from "./StageView.vue";
 import MindStream from "./MindStream.vue";
 import StatsPanel from "./StatsPanel.vue";
@@ -34,14 +34,37 @@ function reset() {
 }
 
 const emit = defineEmits<{ (e: "done"): void }>();
+
+// 实时计时：长程任务运行时展示「第 N 步 · 已用 Xs」，结束后定格为总步数与总用时
+const elapsed = ref(0);
+let timer: number | null = null;
+function stopTimer() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+}
 watch(status, (s) => {
+  if (s === "running") {
+    elapsed.value = 0;
+    stopTimer();
+    const t0 = Date.now();
+    timer = window.setInterval(() => {
+      elapsed.value = Math.floor((Date.now() - t0) / 1000);
+    }, 250);
+  } else {
+    stopTimer();
+  }
   if (s === "done" || s === "error") emit("done");
 });
 
 onMounted(() => {
   if (props.autostart) startLive();
 });
-onBeforeUnmount(() => player.reset());
+onBeforeUnmount(() => {
+  stopTimer();
+  player.reset();
+});
 
 defineExpose({ startLive, startReplay, reset, status, result, currentIndex });
 </script>
@@ -51,6 +74,9 @@ defineExpose({ startLive, startReplay, reset, status, result, currentIndex });
     <div class="phead">
       <span class="badge">{{ side === "ours" ? "OURS" : "BASELINE" }}</span>
       <span class="ml">{{ label }}</span>
+      <span v-if="status === 'running' || status === 'done'" class="prog">
+        第 {{ currentIndex + 1 }} 步 · {{ elapsed }}s
+      </span>
       <span class="st" :data-s="status">{{ statusText }}</span>
     </div>
     <StageView
@@ -108,6 +134,19 @@ defineExpose({ startLive, startReplay, reset, status, result, currentIndex });
 .ml {
   font-size: 13px;
   font-weight: 600;
+}
+.prog {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ours);
+}
+.baseline .prog {
+  color: var(--baseline);
+}
+.prog + .st {
+  margin-left: 12px;
 }
 .st {
   margin-left: auto;

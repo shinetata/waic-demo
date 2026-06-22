@@ -18,7 +18,9 @@ from ap_engine.environments import get_role, make_environment
 from ap_engine.models import PolicyInput, make_policy
 from ap_engine.storage import save_trajectory
 from ap_protocol import (
+    Action,
     ActionCounts,
+    ElementTarget,
     Intent,
     ModelInfo,
     Step,
@@ -48,6 +50,19 @@ _ACTION_KEYS = [
 
 def _now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+
+# 进入新页面后至少先观察这么多次（see/zoom/snapshot）才允许 click 离开本页：
+# 体现"主动感知 = 先看清再导航"，并为长程深链任务保证足够的逐页核查步数。
+_MIN_OBSERVE_BEFORE_NAV = 3
+
+
+def _coerce_observe(obs, seen_ids: set[str]) -> Optional[Action]:
+    """把"过早 click"改写为对本页一个尚未查看区域的 see；本页区域均已看过则返回 None（放行 click）。"""
+    for e in obs.elements:
+        if e.kind != "link" and e.id not in seen_ids:
+            return Action(type="see", target=ElementTarget(element_id=e.id), label=f"SEE {e.label}")
+    return None
 
 
 async def run_trajectory(
@@ -105,10 +120,15 @@ async def run_trajectory(
     t0 = time.perf_counter()
     max_steps = settings.max_steps
 
+    # 软约束状态：当前页已观察次数与已看过的区域 id（保证"先看清再导航"）
+    cur_stage = obs.stage
+    stage_observe = 0
+    stage_seen_ids: set[str] = set()
+    _observe_types = ("see", "zoom_in", "zoom_out", "snapshot")
+
     for i in range(max_steps):
         inp = PolicyInput(
             intent=intent,
-            goal_hint=role_spec.goal_hint,
             step_index=i,
             max_steps=max_steps,
             history=steps,
@@ -119,10 +139,27 @@ async def run_trajectory(
         dur_ms = round((time.perf_counter() - s0) * 1000, 1)
 
         action = decision.action
+        thought = decision.thought
+        sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
+        # 规整①：进入新页后未充分观察就 click，改写为先 see 一个未看区域（先看清再导航）
+        if action.type == "click" and stage_observe < _MIN_OBSERVE_BEFORE_NAV:
+            forced = _coerce_observe(obs, stage_seen_ids)
+            if forced is not None:
+                action = forced
+                thought = "先把本页关键区域看清楚，再决定是否进入下一页继续核查。"
+                sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
+        # 规整②：与上一步完全相同的观察动作（原地打转）→ 换一个本页未看区域，推进核查
+        elif sig == prev_sig and action.type in _observe_types:
+            forced = _coerce_observe(obs, stage_seen_ids)
+            if forced is not None:
+                action = forced
+                thought = "换一个关键区域，继续核查本页其它要点。"
+                sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
+
         step = Step(
             index=i,
             stage=obs.stage,
-            thought=decision.thought,
+            thought=thought,
             action=action,
             observation=obs.to_protocol(),
             timing=Timing(started_at=_now(), duration_ms=dur_ms),
@@ -135,6 +172,10 @@ async def run_trajectory(
             tokens.total += decision.tokens.total
         if action.target is not None and getattr(action.target, "kind", None) == "element":
             seen_elements.add(action.target.element_id)
+        if action.type in _observe_types:
+            stage_observe += 1
+            if action.target is not None and getattr(action.target, "kind", None) == "element":
+                stage_seen_ids.add(action.target.element_id)
 
         yield StepEvent(step=step)
 
@@ -142,17 +183,24 @@ async def run_trajectory(
             reached_eos = True
             break
 
-        # 防重复（卡死保护）：连续 3 次完全相同的非 none 动作才终止（给模型自我纠正空间）
-        sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
+        # 卡死保护：连续相同的非 none 动作累计达阈值才终止（给模型自我纠正空间）
         if sig == prev_sig and action.type != "none":
             repeat += 1
-            if repeat >= 2:
+            if repeat >= 3:
+                # 末页（无可进入链接）反复纠结：视为已完成核查，正常收尾
+                if not any(e.kind == "link" for e in obs.elements):
+                    reached_eos = True
                 break
         else:
             repeat = 0
         prev_sig = sig
 
         obs = env.step(action)
+        # 切换到新页面：重置本页观察计数
+        if obs.stage != cur_stage:
+            cur_stage = obs.stage
+            stage_observe = 0
+            stage_seen_ids = set()
 
     total_ms = round((time.perf_counter() - t0) * 1000, 1)
     total_elements = len(env.elements)
@@ -167,9 +215,13 @@ async def run_trajectory(
         reached_eos=reached_eos,
     )
     last = steps[-1] if steps else None
-    final_output = role_spec.output or (
-        last.action.label if (last and last.action.type == "eos") else None
-    )
+    # 产出用模型自己给出的真实结论（eos 的 label/thought），不再使用任何预设文案
+    final_output = None
+    if last is not None and last.action.type == "eos":
+        label = (last.action.label or "").strip()
+        if label.upper().startswith("OUTPUT:"):
+            label = label.split(":", 1)[1].strip()
+        final_output = label or last.thought
     result = TrajectoryResult(
         conclusion=last.thought if last else None,
         output=final_output,

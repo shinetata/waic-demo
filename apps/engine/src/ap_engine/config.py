@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     host: str = "127.0.0.1"
     port: int = 8000
-    max_steps: int = 24
+    max_steps: int = 40
     assets_dir: str = "assets"
     trajectories_dir: str = "trajectories"
 

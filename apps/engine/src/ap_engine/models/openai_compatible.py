@@ -69,9 +69,10 @@ class OpenAICompatiblePolicy(VisionPolicy):
                     },
                 ]
 
+        # 两次仍无法解析：不终止整条轨迹，改为"保持观察"占位（none），把机会留给下一步自我恢复
         return PolicyDecision(
-            thought=f"(无法解析模型输出，结束观察：{last_err})",
-            action=Action(type="eos", label="OUTPUT: 结束"),
+            thought=f"(上一步输出解析失败，保持观察、继续核查：{last_err})",
+            action=Action(type="none", label="继续观察"),
             tokens=None,
             raw="parse-failed",
         )
