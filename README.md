@@ -1,4 +1,4 @@
-# WAIC 主动感知 Demo
+# 主动感知 Demo
 
 真实模型实时推理驱动的 **Active Lifting**（主动感知）闭环，以及两个展示场景：
 
