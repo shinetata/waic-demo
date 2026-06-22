@@ -1,0 +1,27 @@
+# deps
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# build
+dist/
+*.tsbuildinfo
+
+# env / secrets
+.env
+.env.local
+.env.*.local
+
+# generated runtime artifacts (源大图 assets/pages/*.jpg 入库保留)
+apps/engine/trajectories/*.json
+apps/engine/assets/runtime/
+
+# caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# misc
+*.log
+.DS_Store

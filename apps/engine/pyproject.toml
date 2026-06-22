@@ -1,0 +1,28 @@
+[project]
+name = "ap-engine"
+version = "0.1.0"
+description = "Active Perception 引擎：主动感知闭环 + 流式轨迹服务"
+requires-python = ">=3.11"
+dependencies = [
+    "ap-protocol",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.4",
+    "httpx>=0.27",
+    "openai>=1.40",
+    "pillow>=10.4",
+]
+
+[project.optional-dependencies]
+browser = ["playwright>=1.45"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ap_engine"]
+
+[tool.uv.sources]
+ap-protocol = { path = "../../packages/protocol/py", editable = true }

@@ -1,0 +1,9 @@
+packages:
+  - "packages/*"
+  - "apps/web"
+
+# esbuild 的安装脚本仅做平台二进制校验，允许它运行
+onlyBuiltDependencies:
+  - esbuild
+
+# 注：apps/engine 为 Python 工程，用 uv 管理，不纳入 pnpm workspace

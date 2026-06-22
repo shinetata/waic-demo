@@ -1,0 +1,16 @@
+{
+  "name": "waic-active-perception",
+  "private": true,
+  "version": "0.1.0",
+  "description": "WAIC 主动感知 Demo - monorepo 根（协议包 + Vue3 前端；Python 引擎在 apps/engine 用 uv 管理）",
+  "packageManager": "pnpm@11.5.1",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "build:protocol": "pnpm -F @ap/protocol build",
+    "dev:web": "pnpm -F @ap/web dev",
+    "build:web": "pnpm -F @ap/web build"
+  }
+}

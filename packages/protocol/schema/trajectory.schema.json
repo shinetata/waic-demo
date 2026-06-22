@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memos.ai/waic/active-perception/trajectory.schema.json",
+  "title": "ActivePerceptionTrajectory",
+  "description": "WAIC 主动感知 Demo 轨迹协议。模型在自建页面环境中以 (心语 wₜ, 动作 aₜ) 序列主动探索的记录，作为引擎(Python)与前端(TS)的共享契约。",
+  "type": "object",
+  "$ref": "#/$defs/Trajectory",
+  "$defs": {
+    "Rect": {
+      "type": "object",
+      "description": "归一化矩形 [0,1]，相对于所在 stage 的整页/大图坐标系。",
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "w": { "type": "number", "minimum": 0, "maximum": 1 },
+        "h": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["x", "y", "w", "h"],
+      "additionalProperties": false
+    },
+    "ActionType": {
+      "type": "string",
+      "description": "Active Lifting 动作空间。none = 连续思考(不移动视野)，eos = 结束 rollout。",
+      "enum": ["see", "click", "zoom_in", "zoom_out", "scroll", "none", "navigate", "snapshot", "eos"]
+    },
+    "ElementTarget": {
+      "type": "object",
+      "description": "DOM 语义元素 grounding（首页/详情文字区使用，对通用模型可靠）。",
+      "properties": {
+        "kind": { "const": "element" },
+        "element_id": { "type": "string", "description": "页面 manifest 中的语义元素 id" },
+        "stage": { "type": "string" }
+      },
+      "required": ["kind", "element_id"],
+      "additionalProperties": false
+    },
+    "RegionTarget": {
+      "type": "object",
+      "description": "归一化像素区域 grounding（dense 大图内部细节使用）。",
+      "properties": {
+        "kind": { "const": "region" },
+        "rect": { "$ref": "#/$defs/Rect" },
+        "stage": { "type": "string" }
+      },
+      "required": ["kind", "rect"],
+      "additionalProperties": false
+    },
+    "NavTarget": {
+      "type": "object",
+      "description": "页面跳转目标（navigate 动作使用）。",
+      "properties": {
+        "kind": { "const": "nav" },
+        "to": { "type": "string", "description": "目标 stage 标识或 URL" }
+      },
+      "required": ["kind", "to"],
+      "additionalProperties": false
+    },
+    "Target": {
+      "description": "混合 grounding：元素 id / 归一化区域 / 跳转目标。",
+      "oneOf": [
+        { "$ref": "#/$defs/ElementTarget" },
+        { "$ref": "#/$defs/RegionTarget" },
+        { "$ref": "#/$defs/NavTarget" }
+      ]
+    },
+    "Action": {
+      "type": "object",
+      "description": "动作 aₜ。see/click/zoom_* 需要 target；none/eos/snapshot 通常无 target。",
+      "properties": {
+        "type": { "$ref": "#/$defs/ActionType" },
+        "target": { "$ref": "#/$defs/Target" },
+        "label": { "type": "string", "description": "动作短标签，如 READ headline / ZOOM-IN indicators" },
+        "reason": { "type": "string", "description": "选择该动作的简短理由（可选）" }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "Observation": {
+      "type": "object",
+      "description": "环境产出的当前微环境。观测表示 = 全局缩略图 + 当前局部高清裁剪 + 视野位置。",
+      "properties": {
+        "stage": { "type": "string" },
+        "full_image": { "type": "string", "description": "整页/大图资源引用(路径或 url)" },
+        "thumbnail": { "type": "string", "description": "全局低分缩略图引用" },
+        "crop_image": { "type": "string", "description": "当前视野局部高清裁剪引用" },
+        "rect": { "$ref": "#/$defs/Rect", "description": "当前视野在整页中的归一化位置" },
+        "zoom_level": { "type": "number", "description": "相对整页的缩放倍数，1=全局" }
+      },
+      "required": ["stage"],
+      "additionalProperties": false
+    },
+    "Timing": {
+      "type": "object",
+      "properties": {
+        "started_at": { "type": "string", "format": "date-time" },
+        "duration_ms": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "Step": {
+      "type": "object",
+      "description": "一步主动感知：心语 wₜ + 动作 aₜ + 该步对应的微环境。",
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "stage": { "type": "string" },
+        "thought": { "type": "string", "description": "心语 wₜ：当前隐状态/判断/意图" },
+        "action": { "$ref": "#/$defs/Action" },
+        "observation": { "$ref": "#/$defs/Observation" },
+        "timing": { "$ref": "#/$defs/Timing" }
+      },
+      "required": ["index", "stage", "thought", "action"],
+      "additionalProperties": false
+    },
+    "Intent": {
+      "type": "object",
+      "description": "驱动主动探索的角色意图。",
+      "properties": {
+        "role": { "type": "string", "description": "角色 key，如 trader / fan" },
+        "persona": { "type": "string", "description": "展示名，如 TRADER · 短线交易员" },
+        "prompt": { "type": "string", "description": "意图自然语言描述" }
+      },
+      "required": ["role", "prompt"],
+      "additionalProperties": false
+    },
+    "ModelInfo": {
+      "type": "object",
+      "description": "产生该轨迹的模型信息，side 用于对比模式分栏。",
+      "properties": {
+        "provider": { "type": "string", "description": "如 openai_compatible / mock" },
+        "name": { "type": "string", "description": "模型名/slug，如 google/gemma-4-31b-it" },
+        "side": { "type": "string", "enum": ["ours", "baseline"], "description": "对比栏归属" }
+      },
+      "required": ["name", "side"],
+      "additionalProperties": false
+    },
+    "ActionCounts": {
+      "type": "object",
+      "properties": {
+        "see": { "type": "integer" },
+        "click": { "type": "integer" },
+        "zoom_in": { "type": "integer" },
+        "zoom_out": { "type": "integer" },
+        "scroll": { "type": "integer" },
+        "none": { "type": "integer" },
+        "navigate": { "type": "integer" },
+        "snapshot": { "type": "integer" },
+        "eos": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "TokenUsage": {
+      "type": "object",
+      "properties": {
+        "prompt": { "type": "integer" },
+        "completion": { "type": "integer" },
+        "total": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "TrajectoryStats": {
+      "type": "object",
+      "description": "用于对比模式与数据面板的可量化指标。",
+      "properties": {
+        "total_steps": { "type": "integer", "minimum": 0 },
+        "action_counts": { "$ref": "#/$defs/ActionCounts" },
+        "skipped_regions": { "type": "integer", "description": "主动跳过的无关区域数" },
+        "tokens": { "$ref": "#/$defs/TokenUsage" },
+        "duration_ms": { "type": "number" },
+        "reached_eos": { "type": "boolean", "description": "是否模型主动 EOS 终止（true）还是被步数预算截断（false）" }
+      },
+      "required": ["total_steps", "reached_eos"],
+      "additionalProperties": false
+    },
+    "TrajectoryResult": {
+      "type": "object",
+      "properties": {
+        "conclusion": { "type": "string", "description": "最终结论（done 步心语）" },
+        "output": { "type": "string", "description": "最终输出动作标签，如 OUTPUT: ADD POSITION" },
+        "stats": { "$ref": "#/$defs/TrajectoryStats" }
+      },
+      "required": ["stats"],
+      "additionalProperties": false
+    },
+    "TrajectoryStatus": {
+      "type": "string",
+      "enum": ["running", "done", "aborted", "error"]
+    },
+    "Trajectory": {
+      "type": "object",
+      "description": "一条完整的主动感知轨迹。",
+      "properties": {
+        "id": { "type": "string" },
+        "scene": { "type": "string", "description": "场景标识，如 d0-news-portal / d4-investigation" },
+        "intent": { "$ref": "#/$defs/Intent" },
+        "model": { "$ref": "#/$defs/ModelInfo" },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
+        "result": { "$ref": "#/$defs/TrajectoryResult" },
+        "status": { "$ref": "#/$defs/TrajectoryStatus" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "scene", "intent", "model", "steps", "status", "created_at"],
+      "additionalProperties": false
+    },
+    "StreamEvent": {
+      "description": "WebSocket/SSE 流式事件。前端据此边收边播。",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "轨迹开始：携带元信息，steps 为空。",
+          "properties": {
+            "type": { "const": "trajectory_start" },
+            "trajectory": { "$ref": "#/$defs/Trajectory" }
+          },
+          "required": ["type", "trajectory"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "一个完整 step 产生。",
+          "properties": {
+            "type": { "const": "step" },
+            "step": { "$ref": "#/$defs/Step" }
+          },
+          "required": ["type", "step"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "心语逐字流（可选增强）。",
+          "properties": {
+            "type": { "const": "thought_delta" },
+            "index": { "type": "integer" },
+            "delta": { "type": "string" }
+          },
+          "required": ["type", "index", "delta"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "轨迹结束。",
+          "properties": {
+            "type": { "const": "trajectory_end" },
+            "result": { "$ref": "#/$defs/TrajectoryResult" },
+            "status": { "$ref": "#/$defs/TrajectoryStatus" }
+          },
+          "required": ["type", "result", "status"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "错误。",
+          "properties": {
+            "type": { "const": "error" },
+            "message": { "type": "string" }
+          },
+          "required": ["type", "message"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}
