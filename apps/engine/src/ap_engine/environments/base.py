@@ -110,8 +110,8 @@ class RoleSpec:
     key: str
     persona: str
     prompt: str
-    goal_hint: str
     stages: list[StageSpec]
+    goal_hint: str = ""
     output: str = ""  # 该角色的最终产出（结论卡片内容）
 
 

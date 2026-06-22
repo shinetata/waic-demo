@@ -52,8 +52,8 @@ SCENES: dict[str, SceneSpec] = {
             "trader": RoleSpec(
                 key="trader",
                 persona="TRADER · 短线交易员",
-                prompt="盘后在新闻门户复盘：先在首页找到财经头条，进入详情页核对 K 线、技术指标、五档盘口与资金面，判断明日是否加仓。",
-                goal_hint="首页跳过顶部广告，定位『财经要闻』里的茅台头条并点击进入；详情页依次看 K线放量、指标条(主力净流入)、五档盘口、价格卡、正文净利，最后给出明日操作结论。",
+                prompt="帮我看看茅台明天还能不能加仓，从新闻门户上找找最新的财经消息和行情数据。",
+                goal_hint="",
                 stages=[
                     _home_stage(
                         ["nav-finance", "banner", "section-finance", "item-finance", "market-card", "stock-mt", "hot-list"]
@@ -70,8 +70,8 @@ SCENES: dict[str, SceneSpec] = {
             "fan": RoleSpec(
                 key="fan",
                 persona="FAN · 球迷",
-                prompt="想第一时间知道国足比赛结果：在新闻门户首页找到体育头条，进入详情页确认比分、进球者、时间地点与技术统计。",
-                goal_hint="首页定位『体育快讯』里的国足头条并点击进入；详情页看比分卡、迷你球场进球示意、武磊号码、技术统计、事件轴，最后给出赛果与集锦结论。",
+                prompt="国足今天踢日本了吧？帮我看看比分和进球情况。",
+                goal_hint="",
                 stages=[
                     _home_stage(["nav-sports", "banner", "section-sports", "item-sports", "hot-list"]),
                     StageSpec(

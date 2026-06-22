@@ -57,7 +57,6 @@ def _elements_block(inp: PolicyInput) -> str:
 def build_messages(inp: PolicyInput) -> list[dict[str, Any]]:
     obs = inp.observation
     text = f"""【用户意图】{inp.intent.prompt}
-【目标提示】{inp.goal_hint}
 【进度】第 {inp.step_index + 1} 步 / 预算 {inp.max_steps} 步
 【已观察轨迹】
 {summarize_history(inp.history)}

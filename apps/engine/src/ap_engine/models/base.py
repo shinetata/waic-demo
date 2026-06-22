@@ -19,11 +19,11 @@ from ap_protocol import Action, Intent, Step, TokenUsage
 @dataclass
 class PolicyInput:
     intent: Intent
-    goal_hint: str
     step_index: int
     max_steps: int
     history: list[Step]
     observation: EnvObservation
+    goal_hint: str = ""
 
 
 @dataclass
