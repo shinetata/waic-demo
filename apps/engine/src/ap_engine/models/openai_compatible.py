@@ -38,6 +38,17 @@ class OpenAICompatiblePolicy(VisionPolicy):
             total=getattr(u, "total_tokens", 0) or 0,
         )
 
+    async def chat(self, messages: list) -> tuple[str, Optional[TokenUsage]]:
+        """单轮多模态对话：返回 (文本, token 用量)。供"现有做法"一次性整图问答复用。"""
+        resp = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            temperature=0.3,
+            max_tokens=512,
+        )
+        text = resp.choices[0].message.content or ""
+        return text, self._tokens(resp)
+
     async def decide(self, inp: PolicyInput) -> PolicyDecision:
         messages = build_messages(inp)
         valid_ids = {e.id for e in inp.observation.elements}

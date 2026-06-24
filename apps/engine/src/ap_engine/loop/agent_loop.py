@@ -1,6 +1,6 @@
 """Agent Loop：主动感知闭环。
 
-意图 → 微环境 → 模型推 (心语 wₜ, 动作 aₜ) → 环境执行 → 新微环境 → … → EOS。
+意图 → 微环境 → 模型推 (思考, 动作) → 环境执行 → 新微环境 → … → EOS。
 流式 yield StreamEvent（供 WebSocket 边推边播），并把完整轨迹落盘（回放 / 兜底）。
 含最大步数预算与防重复（卡死保护）。
 """
@@ -23,6 +23,8 @@ from ap_protocol import (
     ElementTarget,
     Intent,
     ModelInfo,
+    Rect,
+    RegionTarget,
     Step,
     StepEvent,
     StreamEvent,
@@ -72,17 +74,15 @@ async def run_trajectory(
     settings: Optional[Settings] = None,
 ) -> AsyncGenerator[StreamEvent, None]:
     settings = settings or get_settings()
+    side = side if side in ("ours", "baseline") else "ours"
 
-    # D4 多源破案：复用协议与流式，走独立的多源环境/剧本
-    if scene.startswith("d4"):
-        from ap_engine.environments.investigation import run_investigation
-
-        async for ev in run_investigation(scene, role, side, settings):
+    # 现有做法对照（baseline）：一次性整图问答（读完再想），不走主动感知 loop
+    if side == "baseline":
+        async for ev in run_oneshot_trajectory(scene, role, settings):
             yield ev
         return
 
     role_spec = get_role(scene, role)  # KeyError -> 由调用方处理
-    side = side if side in ("ours", "baseline") else "ours"
     model_cfg = settings.model_for(side)
 
     traj_id = uuid.uuid4().hex[:12]
@@ -236,6 +236,106 @@ async def run_trajectory(
     except OSError:
         pass
 
+    yield TrajectoryEndEvent(result=result, status="done")
+
+
+async def run_oneshot_trajectory(
+    scene: str,
+    role: str,
+    settings: Optional[Settings] = None,
+) -> AsyncGenerator[StreamEvent, None]:
+    """现有做法对照：把整页图一次性喂入真实模型 + 直接问答（读完再想）。
+
+    产出两步轨迹：see 整页（一次性读入）→ eos（直接给结论），用于前端"现有做法"小窗反衬。
+    """
+    settings = settings or get_settings()
+    role_spec = get_role(scene, role)
+    model_cfg = settings.model_for("baseline")
+
+    traj_id = uuid.uuid4().hex[:12]
+    runtime_dir = str(Path(settings.assets_dir) / "runtime")
+    env = make_environment(
+        scene,
+        role,
+        assets_dir=settings.assets_dir,
+        runtime_dir=runtime_dir,
+        asset_base_url="/assets",
+        traj_id=traj_id,
+    )
+    intent = Intent(role=role, persona=role_spec.persona, prompt=role_spec.prompt)
+    traj = Trajectory(
+        id=traj_id,
+        scene=scene,
+        intent=intent,
+        model=ModelInfo(provider=model_cfg.provider, name=model_cfg.model_name, side="baseline"),
+        steps=[],
+        status="running",
+        created_at=_now(),
+    )
+    yield TrajectoryStartEvent(trajectory=traj)
+
+    obs = env.reset()  # 首页全局视野（整页）
+    steps: list[Step] = []
+    t0 = time.perf_counter()
+
+    # 第 1 步：一次性读入整页
+    s0 = Step(
+        index=0,
+        stage=obs.stage,
+        thought="一次性读入整张页面，开始通读全部内容。",
+        action=Action(
+            type="see",
+            target=RegionTarget(rect=Rect(x=0.0, y=0.0, w=1.0, h=1.0)),
+            label="一次性读入整页",
+        ),
+        observation=obs.to_protocol(),
+        timing=Timing(started_at=_now()),
+    )
+    steps.append(s0)
+    yield StepEvent(step=s0)
+
+    # 调真实模型：基于整页图直接作答
+    from ap_engine.models.openai_compatible import OpenAICompatiblePolicy
+    from ap_engine.models.prompts import build_oneshot_messages
+
+    tokens: Optional[TokenUsage] = None
+    try:
+        policy = OpenAICompatiblePolicy(model_cfg)
+        messages = build_oneshot_messages(intent, obs.full_path)
+        text, tokens = await policy.chat(messages)
+        conclusion = text.strip() or "（模型未给出结论）"
+    except Exception as exc:  # noqa: BLE001
+        conclusion = f"（模型调用失败：{exc}）"
+
+    # 第 2 步：读完直接给结论
+    s1 = Step(
+        index=1,
+        stage=obs.stage,
+        thought=conclusion,
+        action=Action(type="eos", label="OUTPUT: 读完整页直接作答"),
+        observation=obs.to_protocol(),
+        timing=Timing(started_at=_now()),
+    )
+    steps.append(s1)
+    yield StepEvent(step=s1)
+
+    total_ms = round((time.perf_counter() - t0) * 1000, 1)
+    stats = TrajectoryStats(
+        total_steps=len(steps),
+        action_counts=ActionCounts(see=1, eos=1),
+        skipped_regions=0,
+        tokens=tokens if tokens and tokens.total > 0 else None,
+        duration_ms=total_ms,
+        reached_eos=True,
+    )
+    result = TrajectoryResult(conclusion=conclusion, output=conclusion, stats=stats)
+    traj.steps = steps
+    traj.result = result
+    traj.status = "done"
+    try:
+        save_trajectory(traj, settings.trajectories_dir)
+    except OSError:
+        pass
     yield TrajectoryEndEvent(result=result, status="done")
 
 

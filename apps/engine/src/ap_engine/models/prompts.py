@@ -42,6 +42,27 @@ target 二选一：
 当你已经走到信息链末端（当前页不再有可点击的 [链接] 进入新页面）、并综合了沿途各页的关键证据后，再输出 {"thought":"<综合多源的结论>","action":{"type":"eos","label":"OUTPUT: <结论摘要>"}}。"""
 
 
+ONESHOT_SYSTEM_PROMPT = """你是一个传统视觉问答模型。你会一次性看到整张页面截图，然后基于这一次性读入的全部内容，直接给出对用户问题的回答。你不能逐步放大、不能翻页、不能主动选择看哪里——只能依据这张整页图所能看清的信息作答。请用一段简短中文直接给出结论。"""
+
+
+def build_oneshot_messages(intent, full_image_path) -> list[dict[str, Any]]:
+    """现有做法对照：把整页图一次性喂入 + 直接问答（读完再想）。"""
+    text = (
+        f"【用户问题】{intent.prompt}\n\n"
+        "下面是整张页面截图。请一次性通读后直接给出你的结论（一段简短中文）。"
+    )
+    return [
+        {"role": "system", "content": ONESHOT_SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": text},
+                {"type": "image_url", "image_url": {"url": image_data_url(full_image_path)}},
+            ],
+        },
+    ]
+
+
 def _elements_block(inp: PolicyInput) -> str:
     els = inp.observation.elements
     if not els:

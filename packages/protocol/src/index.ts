@@ -60,7 +60,7 @@ export interface NavTarget {
 /** 混合 grounding */
 export type Target = ElementTarget | RegionTarget | NavTarget;
 
-/** 动作 aₜ */
+/** 动作 */
 export interface Action {
   type: ActionType;
   target?: Target;
@@ -83,7 +83,7 @@ export interface Timing {
   duration_ms?: number;
 }
 
-/** 一步主动感知：心语 wₜ + 动作 aₜ + 微环境 */
+/** 一步主动感知：思考 + 动作 + 微环境 */
 export interface Step {
   index: number;
   stage: string;

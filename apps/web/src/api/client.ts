@@ -62,28 +62,6 @@ export async function listTrajectories(): Promise<TrajItem[]> {
   return (d.items ?? []) as TrajItem[];
 }
 
-export interface CaseSource {
-  id: string;
-  title: string;
-  kind: string;
-  value: string;
-  detail: string;
-  footnote: string | null;
-}
-export interface InvestigationCase {
-  id: string;
-  title: string;
-  question: string;
-  conflict: string[];
-  sources: CaseSource[];
-}
-
-export async function getCases(): Promise<InvestigationCase[]> {
-  const r = await fetch(`${BASE}/api/cases`);
-  const d = await r.json();
-  return (d.cases ?? []) as InvestigationCase[];
-}
-
 export async function getPreview(
   scene: string,
   role: string,

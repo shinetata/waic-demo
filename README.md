@@ -1,9 +1,8 @@
 # 主动感知 Demo
 
-真实模型实时推理驱动的 **Active Lifting**（主动感知）闭环，以及两个展示场景：
+真实模型实时推理驱动的 **Active Lifting**（认知基模 · 主动感知）闭环演示：
 
-- **D0 浏览器主动感知**：同一画面、不同意图 → 完全不同的观察路径（我们 vs Gemma 4 31B 对比）。
-- **D4 多源破案**：面对矛盾信息源，主动选择阅读、发现矛盾、回看脚注、推出一致性解释。
+- **D0 浏览器主动感知**：认知基模面对一整页信息，不一次性读入，而是逐步主动选择看哪里、凑近细看关键数字、跳过无关区域、拿不准就停下多想，信息够了主动收尾；右侧以"现有做法（一次性读入、读完再想）"作对照反衬。
 
 ## 架构（三层 + 闭环）
 
@@ -12,14 +11,14 @@
         │
 主动感知引擎 (apps/engine, Python/FastAPI)
   环境层 Environment   ：自建页面/大图 → 按动作裁剪产出「全局缩略图 + 局部高清」微环境
-  策略模型适配层        ：统一 VisionPolicy，.env 可插拔 provider（mock / OpenAI 兼容）
-  Agent Loop          ：意图 → 微环境 → 模型推 (心语 wₜ, 动作 aₜ) → 环境执行 → … → EOS（流式）
+  策略模型适配层        ：统一 VisionPolicy，OpenAI 兼容 provider（OpenRouter / vLLM / 自研基模）
+  Agent Loop          ：意图 → 微环境 → 模型推 (思考, 动作) → 环境执行 → … → EOS（流式）
         │  WebSocket / SSE
 前端播放引擎 (apps/web, Vue 3)
-  注意力框 / 轨迹曲线 / 局部高清浮窗 / 心语流 / 数据面板 / 证据板
+  注意力框 / 轨迹曲线 / 局部高清浮窗 / 思考流 / 三大能力讲解
 ```
 
-动作空间：`see / click / zoom_in / zoom_out / scroll / none(连续思考) / navigate / snapshot / eos`。
+动作空间：`see / click / zoom_in / zoom_out / scroll / none(停下多想) / navigate / snapshot / eos`。
 grounding 混合：DOM 语义元素 id + dense 区归一化坐标。
 
 ## 快速开始
@@ -29,14 +28,14 @@ grounding 混合：DOM 语义元素 id + dense 区归一化坐标。
 ```bash
 cd apps/engine
 uv sync
-cp .env.example .env          # 默认 provider=mock，可零依赖跑通
+cp .env.example .env          # 配置 OpenAI 兼容端点的 base_url / api_key / model
 uv run uvicorn ap_engine.server:app --reload --port 8000
 ```
 
 命令行跑一条真实轨迹：
 
 ```bash
-uv run python -m ap_engine.cli --scene d0-news-portal --role trader --side baseline
+uv run python -m ap_engine.cli --scene d0-news-portal --role trader --side ours
 ```
 
 ### 2. 前端（pnpm）
@@ -46,32 +45,30 @@ pnpm install                  # 在仓库根 demo/ 执行
 pnpm -F @ap/web dev           # http://localhost:5173
 ```
 
-## 模型可插拔（.env）
+## 模型配置（.env）
 
-两侧（`ours` / `baseline`）独立配置，运行时按 `provider` 切换：
+两侧（`ours` / `baseline`）独立配置，均经 OpenAI 兼容协议接入：
 
 | 变量 | 说明 |
 |------|------|
-| `AP_OURS_PROVIDER` / `AP_BASELINE_PROVIDER` | `mock` 或 `openai_compatible` |
-| `AP_*_MODEL_NAME` | 模型 slug，如 `google/gemma-4-31b-it`、`qwen/qwen3.5-vl-instruct` |
+| `AP_OURS_*` / `AP_BASELINE_*` | 两侧的 provider / model / base_url / api_key / label |
+| `AP_*_MODEL_NAME` | 模型 slug，如 `qwen/qwen3.5-vl-instruct` |
 | `AP_*_BASE_URL` | OpenAI 兼容端点，如 OpenRouter `https://openrouter.ai/api/v1` |
 | `AP_*_API_KEY` | 对应 Key |
 
-- **baseline**：Gemma 4 31B（经 OpenRouter 接入，本机无需部署）。
-- **ours（前期）**：Qwen3.5-VL 代理；自研基模 ready 后改 `.env` 即可无缝替换。
-- `mock`：无网络/Key 的确定性策略，用于跑通闭环、前端联调与现场离线兜底。
+- **认知基模（ours）**：主动感知逐步探索；前期 Qwen3.5-VL 代理，自研基模 ready 后改 `.env` 即可无缝替换。
+- **现有做法（baseline）**：同样真实模型，但走"一次性整图问答"路径，体现一次性读入、读完再想。
 
 ## 目录
 
 ```
 packages/protocol/   轨迹协议（schema + TS + Pydantic）
 apps/engine/         主动感知引擎（environments / models / loop）
-  tools/run_shot.sh  起服务 + Playwright 截图（前端可视化验证）
-apps/web/            Vue 3 前端（engine 播放引擎 + scenes/d0-browser + scenes/d4-investigation）
+apps/web/            Vue 3 前端（engine 播放引擎 + scenes/d0-browser）
 ```
 
 ## 验证状态
 
-- 引擎：协议 / 环境 / 可插拔模型 / Agent Loop / CLI / WebSocket 流式 均跑通（mock）。
-- 前端：`vue-tsc` 类型检查 + `vite build` 通过；D0 与 D4 页面已用 Playwright 实拍验证渲染。
-- 现场用真实模型：在 `.env` 配置 OpenRouter Key 即可（ours=Qwen-VL / baseline=Gemma），对比维度（步数 / 放大 / 跳过 / 连续思考 / EOS）随真实模型自然显现差异。
+- 引擎：协议 / 环境 / 真实模型适配 / Agent Loop / CLI / WebSocket 流式 均跑通。
+- 前端：`vue-tsc` 类型检查 + `vite build` 通过；D0 页面用真实轨迹回放验证渲染。
+- 现场：在 `.env` 配置 OpenAI 兼容端点的 Key 即可（认知基模走主动感知，现有做法走一次性整图问答），对比维度随真实模型自然显现。

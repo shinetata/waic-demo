@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://memos.ai/waic/active-perception/trajectory.schema.json",
   "title": "ActivePerceptionTrajectory",
-  "description": "WAIC 主动感知 Demo 轨迹协议。模型在自建页面环境中以 (心语 wₜ, 动作 aₜ) 序列主动探索的记录，作为引擎(Python)与前端(TS)的共享契约。",
+  "description": "WAIC 主动感知 Demo 轨迹协议。模型在自建页面环境中以 (思考, 动作) 序列主动探索的记录，作为引擎(Python)与前端(TS)的共享契约。",
   "type": "object",
   "$ref": "#/$defs/Trajectory",
   "$defs": {
@@ -20,7 +20,7 @@
     },
     "ActionType": {
       "type": "string",
-      "description": "Active Lifting 动作空间。none = 连续思考(不移动视野)，eos = 结束 rollout。",
+      "description": "Active Lifting 动作空间。none = 停下多想(不移动视野)，eos = 结束 rollout。",
       "enum": ["see", "click", "zoom_in", "zoom_out", "scroll", "none", "navigate", "snapshot", "eos"]
     },
     "ElementTarget": {
@@ -65,7 +65,7 @@
     },
     "Action": {
       "type": "object",
-      "description": "动作 aₜ。see/click/zoom_* 需要 target；none/eos/snapshot 通常无 target。",
+      "description": "动作。see/click/zoom_* 需要 target；none/eos/snapshot 通常无 target。",
       "properties": {
         "type": { "$ref": "#/$defs/ActionType" },
         "target": { "$ref": "#/$defs/Target" },
@@ -99,11 +99,11 @@
     },
     "Step": {
       "type": "object",
-      "description": "一步主动感知：心语 wₜ + 动作 aₜ + 该步对应的微环境。",
+      "description": "一步主动感知：思考 + 动作 + 该步对应的微环境。",
       "properties": {
         "index": { "type": "integer", "minimum": 0 },
         "stage": { "type": "string" },
-        "thought": { "type": "string", "description": "心语 wₜ：当前隐状态/判断/意图" },
+        "thought": { "type": "string", "description": "思考：当前判断/意图" },
         "action": { "$ref": "#/$defs/Action" },
         "observation": { "$ref": "#/$defs/Observation" },
         "timing": { "$ref": "#/$defs/Timing" }
@@ -126,7 +126,7 @@
       "type": "object",
       "description": "产生该轨迹的模型信息，side 用于对比模式分栏。",
       "properties": {
-        "provider": { "type": "string", "description": "如 openai_compatible / mock" },
+        "provider": { "type": "string", "description": "如 openai_compatible" },
         "name": { "type": "string", "description": "模型名/slug，如 google/gemma-4-31b-it" },
         "side": { "type": "string", "enum": ["ours", "baseline"], "description": "对比栏归属" }
       },
@@ -174,7 +174,7 @@
     "TrajectoryResult": {
       "type": "object",
       "properties": {
-        "conclusion": { "type": "string", "description": "最终结论（done 步心语）" },
+        "conclusion": { "type": "string", "description": "最终结论（done 步思考）" },
         "output": { "type": "string", "description": "最终输出动作标签，如 OUTPUT: ADD POSITION" },
         "stats": { "$ref": "#/$defs/TrajectoryStats" }
       },
@@ -190,7 +190,7 @@
       "description": "一条完整的主动感知轨迹。",
       "properties": {
         "id": { "type": "string" },
-        "scene": { "type": "string", "description": "场景标识，如 d0-news-portal / d4-investigation" },
+        "scene": { "type": "string", "description": "场景标识，如 d0-news-portal" },
         "intent": { "$ref": "#/$defs/Intent" },
         "model": { "$ref": "#/$defs/ModelInfo" },
         "steps": { "type": "array", "items": { "$ref": "#/$defs/Step" } },
@@ -226,7 +226,7 @@
         },
         {
           "type": "object",
-          "description": "心语逐字流（可选增强）。",
+          "description": "思考逐字流（可选增强）。",
           "properties": {
             "type": { "const": "thought_delta" },
             "index": { "type": "integer" },

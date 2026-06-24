@@ -57,16 +57,6 @@ def api_scenes() -> dict:
         return {"scenes": [], "note": f"environments not ready: {exc}"}
 
 
-@app.get("/api/cases")
-def api_cases() -> dict:
-    try:
-        from ap_engine.environments.investigation import list_cases
-
-        return {"cases": list_cases()}
-    except Exception as exc:  # noqa: BLE001
-        return {"cases": [], "note": f"investigation not ready: {exc}"}
-
-
 @app.get("/api/preview")
 def api_preview(scene: str = "d0-news-portal", role: str = "trader") -> dict:
     """返回该角色首个 stage 的整页图，供前端运行前即展示。"""

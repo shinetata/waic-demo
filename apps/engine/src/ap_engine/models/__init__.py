@@ -1,4 +1,4 @@
-"""策略模型适配层：通过 .env 的 provider 可插拔切换。"""
+"""策略模型适配层：通过 .env 的 provider 可插拔切换（仅真实模型）。"""
 
 from __future__ import annotations
 
@@ -10,24 +10,22 @@ from ap_engine.models.base import (
     image_data_url,
     summarize_history,
 )
-from ap_engine.models.mock import MockPolicy
 
 _OPENAI_ALIASES = {"openai_compatible", "openai", "openrouter", "vllm", "compat"}
 
 
 def make_policy(config: ModelConfig) -> VisionPolicy:
-    provider = (config.provider or "mock").lower()
-    if provider == "mock":
-        return MockPolicy(config)
+    provider = (config.provider or "openai_compatible").lower()
     if provider in _OPENAI_ALIASES:
         from ap_engine.models.openai_compatible import OpenAICompatiblePolicy
 
         return OpenAICompatiblePolicy(config)
-    raise ValueError(f"unknown model provider: {config.provider!r}")
+    raise ValueError(
+        f"unknown model provider: {config.provider!r}（已移除 mock，仅支持 openai_compatible）"
+    )
 
 
 __all__ = [
-    "MockPolicy",
     "PolicyDecision",
     "PolicyInput",
     "VisionPolicy",

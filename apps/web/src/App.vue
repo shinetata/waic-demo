@@ -2,9 +2,7 @@
 import { onMounted, ref } from "vue";
 import { getConfig } from "./api/client";
 import D0View from "./scenes/d0-browser/D0View.vue";
-import InvestigationView from "./scenes/d4-investigation/InvestigationView.vue";
 
-const tab = ref<"d0" | "d4">("d0");
 const connected = ref(false);
 
 onMounted(async () => {
@@ -22,42 +20,38 @@ onMounted(async () => {
     <header class="hd">
       <div class="brand">
         <div class="logo">AL</div>
-        <div>
-          <h1>Active Lifting · 主动感知</h1>
-          <p class="tag">Not fitting language. Modeling cognition.</p>
+        <div class="brand-txt">
+          <h1>认知基模 · Active Lifting</h1>
+          <p class="tag">不是在模仿人说话，是在建模人的思维 · Not fitting language. Modeling cognition.</p>
         </div>
       </div>
-      <div class="right">
-        <nav class="tabs">
-          <button :class="{ on: tab === 'd0' }" @click="tab = 'd0'">D0 浏览器主动感知</button>
-          <button :class="{ on: tab === 'd4' }" @click="tab = 'd4'">D4 多源破案</button>
-        </nav>
-        <div class="conn" :class="{ ok: connected }">
-          {{ connected ? "引擎已连接" : "引擎未连接" }}
-        </div>
+      <div class="conn" :class="{ ok: connected }">
+        {{ connected ? "引擎已连接" : "引擎未连接" }}
       </div>
     </header>
 
     <main>
-      <D0View v-if="tab === 'd0'" />
-      <InvestigationView v-else />
+      <D0View />
     </main>
   </div>
 </template>
 
 <style scoped>
 .app {
-  max-width: 1480px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 1680px;
   margin: 0 auto;
-  padding: 20px 28px 44px;
+  padding: 14px 24px 16px;
+  overflow: hidden;
 }
 .hd {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 12px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 .brand {
   display: flex;
@@ -65,8 +59,8 @@ onMounted(async () => {
   align-items: center;
 }
 .logo {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   background: linear-gradient(135deg, var(--ours), #4f8bff);
   color: #fff;
@@ -76,38 +70,12 @@ onMounted(async () => {
   font-size: 17px;
 }
 h1 {
-  font-size: 19px;
+  font-size: 20px;
 }
 .tag {
   font-size: 12px;
   color: var(--ink-dim);
-  margin-top: 2px;
-}
-.right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.tabs {
-  display: flex;
-  gap: 6px;
-  background: var(--surface-2);
-  padding: 4px;
-  border-radius: 11px;
-  border: 1px solid var(--line);
-}
-.tabs button {
-  border: none;
-  background: transparent;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-dim);
-}
-.tabs button.on {
-  background: var(--ours);
-  color: #fff;
+  margin-top: 3px;
 }
 .conn {
   font-size: 12px;
@@ -119,5 +87,9 @@ h1 {
 .conn.ok {
   background: #e7f9ef;
   color: var(--ok);
+}
+main {
+  flex: 1;
+  min-height: 0;
 }
 </style>

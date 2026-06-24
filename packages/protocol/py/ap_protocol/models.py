@@ -76,7 +76,7 @@ Target = Annotated[
 
 
 class Action(BaseModel):
-    """动作 aₜ。see/click/zoom_* 需 target；none/eos/snapshot 通常无 target。"""
+    """动作。see/click/zoom_* 需 target；none/eos/snapshot 通常无 target。"""
 
     type: ActionType
     target: Optional[Target] = None
@@ -101,7 +101,7 @@ class Timing(BaseModel):
 
 
 class Step(BaseModel):
-    """一步主动感知：心语 wₜ + 动作 aₜ + 微环境。"""
+    """一步主动感知：思考 + 动作 + 微环境。"""
 
     index: int = Field(ge=0)
     stage: str
