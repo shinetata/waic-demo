@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1120, initial-scale=1" />
+    <title>多源核查 · 案件卷宗</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="detail">
+        <div class="crumb">尽职调查 › <b>多源交叉核查</b></div>
+        <span class="detail-tag">案件卷宗 · 待核实</span>
+        <h1 class="detail-title" id="case-title">云图智能 (688XXX) · 2025 营收交叉核查</h1>
+        <div class="detail-meta"><span>🗂 三个公开信息源</span><span>同一指标 · 数字对不上</span><span>需给出一致性结论</span></div>
+
+        <div class="panel" id="case-task">
+          <h3>核查任务 <span class="sub">交叉验证 · 找出真相</span></h3>
+          <div class="detail-body" style="margin: 0">
+            <p style="margin: 6px 0">
+              请核实：<b>云图智能 2025 全年真实营业收入到底是多少？</b>
+              三个来源给出的数字互相矛盾——
+            </p>
+          </div>
+          <div class="metric-quad" style="grid-template-columns: repeat(3, 1fr); margin-top: 10px">
+            <div class="metric-box">
+              <div class="lbl">📄 公司年报（PDF）</div>
+              <div class="val up-txt">152.3 亿</div>
+            </div>
+            <div class="metric-box">
+              <div class="lbl">📊 券商研报</div>
+              <div class="val down-txt">104.2 亿</div>
+            </div>
+            <div class="metric-box">
+              <div class="lbl">📰 新闻门户报道</div>
+              <div class="val">超 150 亿</div>
+            </div>
+          </div>
+          <div class="footnote">
+            办案提示：三个来源媒介不同（年报 PDF / 券商研报 / 新闻报道），其中不乏抓眼球的宣传大数字。对显眼数字保持怀疑，回到原始披露（年报）放大不起眼的脚注 / 口径小字，找出差异的真正原因，最后给出能同时解释三个数字的一致性结论。
+          </div>
+        </div>
+
+        <a class="next-link" id="src-link-report">
+          <span>📄 公司年报（PDF · 已审计原始披露）
+            <small>合并报表口径 · 营业收入 152.3 亿元（关键口径在脚注小字）</small>
+          </span>
+          <span class="arrow">›</span>
+        </a>
+        <a class="next-link" id="src-link-broker">
+          <span>📊 券商研报 · 中信建投深度覆盖
+            <small>主营业务收入口径 · 104.2 亿元（剔除关联交易）</small>
+          </span>
+          <span class="arrow">›</span>
+        </a>
+        <a class="next-link" id="src-link-press">
+          <span>📰 新闻门户报道 · 科技财经网
+            <small>抓眼球大标题 · 营收突破 150 亿元（宣传口径，需核实）</small>
+          </span>
+          <span class="arrow">›</span>
+        </a>
+      </div>
+    </div>
+  </body>
+</html>

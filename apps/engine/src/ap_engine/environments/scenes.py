@@ -113,6 +113,59 @@ SCENES: dict[str, SceneSpec] = {
 }
 
 
+def _register_investigation_scenes() -> None:
+    """注册 D4 多源破案场景。资产（4 张源图 + manifest）由 tools/render_pages.py 生成；
+    未渲染时静默跳过，保证 D0 与引擎正常启动（渲染后自动可用）。"""
+    try:
+        idx_img, idx = _load_manifest("case-index")
+        a_img, a = _load_manifest("src-report")
+        b_img, b = _load_manifest("src-broker")
+        c_img, c = _load_manifest("src-press")
+    except (FileNotFoundError, KeyError, OSError):
+        return
+
+    SCENES["d4-revenue-probe"] = SceneSpec(
+        id="d4-revenue-probe",
+        title="多源破案 · D4",
+        roles={
+            "investigator": RoleSpec(
+                key="investigator",
+                persona="INVESTIGATOR · 多源核查",
+                prompt="请核实：云图智能 2025 全年真实营业收入到底是多少？三个信息源（年报 / 券商研报 / 新闻稿）给出的数字对不上。",
+                stages=[
+                    StageSpec(
+                        id="case-index",
+                        title="案件卷宗",
+                        image=idx_img,
+                        elements=list(idx.values()),
+                    ),
+                    StageSpec(
+                        id="src-report",
+                        title="来源A · 公司年报",
+                        image=a_img,
+                        elements=list(a.values()),
+                    ),
+                    StageSpec(
+                        id="src-broker",
+                        title="来源B · 券商研报",
+                        image=b_img,
+                        elements=list(b.values()),
+                    ),
+                    StageSpec(
+                        id="src-press",
+                        title="来源C · 官方新闻稿",
+                        image=c_img,
+                        elements=list(c.values()),
+                    ),
+                ],
+            )
+        },
+    )
+
+
+_register_investigation_scenes()
+
+
 def list_scenes() -> list[dict]:
     return [
         {

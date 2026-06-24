@@ -23,6 +23,9 @@ class PolicyInput:
     max_steps: int
     history: list[Step]
     observation: EnvObservation
+    # 场景标识（d4-* 走多源破案侦探提示词）与案件上下文（可核查的源/目标）
+    scene: str = "d0"
+    case_context: Optional[str] = None
 
 
 @dataclass
@@ -33,9 +36,28 @@ class PolicyDecision:
     raw: Optional[str] = None
 
 
-def image_data_url(path: str | Path) -> str:
-    raw = Path(path).read_bytes()
-    return "data:image/jpeg;base64," + base64.b64encode(raw).decode("ascii")
+def image_data_url(path: str | Path, max_width: Optional[int] = None) -> str:
+    """读图为 data URL。
+
+    max_width 设置时先按比例降采样并降质（模拟"一次性整页、看不清细节"）——
+    用于"现有做法"对照：整页缩略图里密集的脚注/口径小字不可读，只能依据显眼大字作答。
+    """
+    p = Path(path)
+    if max_width is None:
+        raw = p.read_bytes()
+        return "data:image/jpeg;base64," + base64.b64encode(raw).decode("ascii")
+
+    from io import BytesIO
+
+    from PIL import Image
+
+    img = Image.open(p).convert("RGB")
+    if img.width > max_width:
+        h = max(int(img.height * max_width / img.width), 1)
+        img = img.resize((max_width, h), Image.LANCZOS)
+    buf = BytesIO()
+    img.save(buf, format="JPEG", quality=70)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def summarize_history(history: list[Step], limit: int = 8) -> str:

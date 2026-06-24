@@ -45,6 +45,66 @@ target 二选一：
 ONESHOT_SYSTEM_PROMPT = """你是一个传统视觉问答模型。你会一次性看到整张页面截图，然后基于这一次性读入的全部内容，直接给出对用户问题的回答。你不能逐步放大、不能翻页、不能主动选择看哪里——只能依据这张整页图所能看清的信息作答。请用一段简短中文直接给出结论。"""
 
 
+# ── D4 多源破案：侦探型主动核查 ───────────────────────────────
+INVESTIGATE_SYSTEM_PROMPT = """你是一个"多源交叉核查"的调查智能体。面对同一个指标，多个公开信息源可能给出互相矛盾的数字。你不会一次性读完所有材料，而是每一步只观察当前视野，主动决定下一步看哪个来源、看哪里。
+
+每一步你会收到两张图：
+1) 全局缩略图：当前页面的低清概览，红框标出你"当前视野"的位置；
+2) 局部高清图：当前视野放大后的清晰画面。
+
+可用动作 action.type：
+- see：把视野移动到某区域查看（需 target）
+- zoom_in：放大某个更小区域看清细节，如读数字、看清脚注/口径小字（需 target）
+- zoom_out：缩小视野回到更大范围
+- navigate：跳转到另一个信息源继续核查（需 target={"kind":"nav","to":"<目标源 stage id>"}）
+- click：点击页面上标注 [链接] 的元素，进入它指向的来源（需 target=该元素 id）
+- none：保持当前视野继续思考（连续思考，不移动视野）
+- snapshot：回到整页全局视野
+- eos：信息已足够，给出结论
+
+target 三选一：
+- {"kind":"element","element_id":"<下方清单里的 id>"}
+- {"kind":"region","rect":{"x":0~1,"y":0~1,"w":0~1,"h":0~1}}
+- {"kind":"nav","to":"<信息源 stage id，如 src-report>"}
+
+核查策略（关键）：
+1) 先在案件卷宗了解任务与各来源入口（媒介各不相同：公司年报 PDF / 券商研报 / 新闻门户报道）。逐个进入、看清并记下每个源给出的关键数字。
+2) 【对新闻报道等渠道里抓眼球的宣传大数字保持怀疑】——它们往往是笼统、对外宣传口径，未必等于真实经营数字。
+3) 一旦发现两个来源数字对不上，不要急着判定谁造假，先想是不是统计口径不同；并以"原始披露"（公司年报 PDF）为准——navigate 回到年报、放大其中初看不起眼的脚注 / 口径小字（zoom_in），找出造成差异的真正原因（例如：合并口径 vs 主营口径、是否含关联交易）。
+4) 最后用一句话给出能【同时解释所有数字】的一致性结论，而不是简单选一个最显眼的数字。
+
+输出要求：每一步只输出一个 JSON，不要任何多余文字、不要 markdown：
+{"thought":"你此刻的判断/意图(一句话中文)","action":{"type":"navigate","target":{"kind":"nav","to":"src-report"},"label":"回看年报核对口径"}}
+
+当你已经看清造成数字差异的口径/条件、能给出一致性解释时，再输出 {"thought":"<同时解释各源数字的一致性结论>","action":{"type":"eos","label":"OUTPUT: <结论摘要>"}}。"""
+
+
+ONESHOT_INVESTIGATE_SYSTEM_PROMPT = """你是一个传统视觉问答模型。你会一次性收到多个信息源的整页缩略图（分辨率有限，密集的小字、脚注、口径说明往往看不清）。你不能放大、不能挑重点细看、不能回看任何细节——只能依据一眼可见的主要内容（大标题、大号数字等）直接作答。请用一段简短中文直接给出结论。"""
+
+
+def build_oneshot_investigation_messages(
+    intent, image_paths, max_width: int = 760
+) -> list[dict[str, Any]]:
+    """现有做法对照（D4）：把多个信息源整页**缩略图**一次性喂入 + 直接问答（读完再想）。
+
+    整页缩略（默认降采样到 max_width）使脚注/口径小字不可读，模型只能依据显眼大字作答，
+    因此容易被抓眼球的宣传大数字带偏——与主动放大小字核查形成反差。
+    """
+    text = (
+        f"【核查问题】{intent.prompt}\n\n"
+        "下面是各信息源的整页缩略图（分辨率有限，细节小字较糊）。请一次性通读后直接给出你的结论（一段简短中文）。"
+    )
+    content: list[dict[str, Any]] = [{"type": "text", "text": text}]
+    for p in image_paths:
+        content.append(
+            {"type": "image_url", "image_url": {"url": image_data_url(p, max_width=max_width)}}
+        )
+    return [
+        {"role": "system", "content": ONESHOT_INVESTIGATE_SYSTEM_PROMPT},
+        {"role": "user", "content": content},
+    ]
+
+
 def build_oneshot_messages(intent, full_image_path) -> list[dict[str, Any]]:
     """现有做法对照：把整页图一次性喂入 + 直接问答（读完再想）。"""
     text = (
@@ -103,7 +163,67 @@ def _page_guide(inp: PolicyInput) -> str:
     )
 
 
+def _investigation_guide(inp: PolicyInput) -> str:
+    """按核查进度动态引导：卷宗页→进各源记数字；源页观察不足→先看清关键数字；
+    已看多源→提示回看相关源放大脚注找口径差异、再 eos 给一致性结论。"""
+    obs = inp.observation
+    cur = obs.stage
+    observe_types = ("see", "zoom_in", "zoom_out", "snapshot")
+    n_here = sum(
+        1 for s in inp.history if s.stage == cur and s.action.type in observe_types
+    )
+    visited = {s.stage for s in inp.history}
+    if cur == "case-index":
+        return (
+            "【办案进度】这是案件卷宗。请逐个进入下方三个来源（navigate 到 src-report / "
+            "src-broker / src-press，或点击 [链接] 元素），先把每个来源的关键营收数字看清、记下。"
+        )
+    lines: list[str] = []
+    if n_here < 1:
+        lines.append(
+            "【办案进度】你刚进入本来源，请先 see / zoom_in 看清它的关键营收数字与口径说明"
+            "（标志数字、脚注小字），记下后再决定下一步。"
+        )
+    if len(visited) >= 3:  # 卷宗 + 至少两个来源
+        lines.append(
+            "你已核查过多个来源。若发现数字对不上，不要急着判定谁错——很可能是统计口径不同。"
+            "可 navigate 回到相关来源、zoom_in 放大脚注/口径小字找出差异原因；看清后用 eos 给出"
+            "能同时解释各源数字的一致性结论。"
+        )
+    else:
+        lines.append("看清本源关键数字后，navigate 到下一个还没核查的来源继续记数字。")
+    return "\n".join(lines)
+
+
+def build_investigation_messages(inp: PolicyInput) -> list[dict[str, Any]]:
+    obs = inp.observation
+    ctx = inp.case_context or ""
+    text = f"""【核查任务】{inp.intent.prompt}
+{ctx}
+【进度】第 {inp.step_index + 1} 步 / 预算 {inp.max_steps} 步
+【已核查轨迹（含你此前记下的数字与判断）】
+{summarize_history(inp.history)}
+【当前所在来源】stage={obs.stage}，zoom={obs.zoom_level}×
+【当前页可选元素】
+{_elements_block(inp)}
+{_investigation_guide(inp)}
+
+请结合下面两张图（第一张=全局缩略图含红框；第二张=当前视野局部高清）决定下一步动作。只输出一个 JSON。"""
+
+    user_content: list[dict[str, Any]] = [
+        {"type": "text", "text": text},
+        {"type": "image_url", "image_url": {"url": image_data_url(obs.thumb_path)}},
+        {"type": "image_url", "image_url": {"url": image_data_url(obs.crop_path)}},
+    ]
+    return [
+        {"role": "system", "content": INVESTIGATE_SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
+    ]
+
+
 def build_messages(inp: PolicyInput) -> list[dict[str, Any]]:
+    if (inp.scene or "").startswith("d4"):
+        return build_investigation_messages(inp)
     obs = inp.observation
     text = f"""【用户意图】{inp.intent.prompt}
 【进度】第 {inp.step_index + 1} 步 / 预算 {inp.max_steps} 步

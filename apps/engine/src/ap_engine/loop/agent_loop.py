@@ -75,15 +75,34 @@ async def run_trajectory(
 ) -> AsyncGenerator[StreamEvent, None]:
     settings = settings or get_settings()
     side = side if side in ("ours", "baseline") else "ours"
+    is_investigation = scene.startswith("d4-")
 
     # 现有做法对照（baseline）：一次性整图问答（读完再想），不走主动感知 loop
     if side == "baseline":
-        async for ev in run_oneshot_trajectory(scene, role, settings):
+        runner = run_oneshot_investigation if is_investigation else run_oneshot_trajectory
+        async for ev in runner(scene, role, settings):
             yield ev
         return
 
     role_spec = get_role(scene, role)  # KeyError -> 由调用方处理
     model_cfg = settings.model_for(side)
+
+    # 多源破案上下文：可核查的源 stage id + 目标（供侦探提示词使用）
+    case_context = ""
+    if is_investigation:
+        try:
+            from ap_engine.cases import get_case
+
+            _case = get_case(scene)
+            _srcs = " / ".join(f"{s.id}({s.title})" for s in _case.sources)
+            case_context = (
+                f"【可核查的信息源 · navigate 用这些 stage id】{_srcs}\n"
+                "【目标】给出能同时解释各源数字的一致性结论，而不是简单选一个数字。"
+            )
+        except KeyError:
+            case_context = ""
+    # 破案需在多源间自由回看，放宽"先看清再导航"为至少观察 1 次（保证读到本源标志数字）
+    min_observe = 1 if is_investigation else _MIN_OBSERVE_BEFORE_NAV
 
     traj_id = uuid.uuid4().hex[:12]
     runtime_dir = str(Path(settings.assets_dir) / "runtime")
@@ -133,6 +152,8 @@ async def run_trajectory(
             max_steps=max_steps,
             history=steps,
             observation=obs,
+            scene=scene,
+            case_context=case_context,
         )
         s0 = time.perf_counter()
         decision = await policy.decide(inp)
@@ -142,7 +163,7 @@ async def run_trajectory(
         thought = decision.thought
         sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
         # 规整①：进入新页后未充分观察就 click，改写为先 see 一个未看区域（先看清再导航）
-        if action.type == "click" and stage_observe < _MIN_OBSERVE_BEFORE_NAV:
+        if action.type == "click" and stage_observe < min_observe:
             forced = _coerce_observe(obs, stage_seen_ids)
             if forced is not None:
                 action = forced
@@ -313,6 +334,107 @@ async def run_oneshot_trajectory(
         stage=obs.stage,
         thought=conclusion,
         action=Action(type="eos", label="OUTPUT: 读完整页直接作答"),
+        observation=obs.to_protocol(),
+        timing=Timing(started_at=_now()),
+    )
+    steps.append(s1)
+    yield StepEvent(step=s1)
+
+    total_ms = round((time.perf_counter() - t0) * 1000, 1)
+    stats = TrajectoryStats(
+        total_steps=len(steps),
+        action_counts=ActionCounts(see=1, eos=1),
+        skipped_regions=0,
+        tokens=tokens if tokens and tokens.total > 0 else None,
+        duration_ms=total_ms,
+        reached_eos=True,
+    )
+    result = TrajectoryResult(conclusion=conclusion, output=conclusion, stats=stats)
+    traj.steps = steps
+    traj.result = result
+    traj.status = "done"
+    try:
+        save_trajectory(traj, settings.trajectories_dir)
+    except OSError:
+        pass
+    yield TrajectoryEndEvent(result=result, status="done")
+
+
+async def run_oneshot_investigation(
+    scene: str,
+    role: str,
+    settings: Optional[Settings] = None,
+) -> AsyncGenerator[StreamEvent, None]:
+    """现有做法对照（D4）：把各信息源整页图一次性喂入真实模型 + 直接问答（读完再想）。
+
+    产出两步轨迹：see 全部来源（一次性读入）→ eos（直接给结论）。多源数字对不上时，
+    一次性读入往往只能报"数据矛盾/无法确定"或随便选一个数字，与主动核查形成反差。
+    """
+    settings = settings or get_settings()
+    role_spec = get_role(scene, role)
+    model_cfg = settings.model_for("baseline")
+
+    traj_id = uuid.uuid4().hex[:12]
+    runtime_dir = str(Path(settings.assets_dir) / "runtime")
+    env = make_environment(
+        scene,
+        role,
+        assets_dir=settings.assets_dir,
+        runtime_dir=runtime_dir,
+        asset_base_url="/assets",
+        traj_id=traj_id,
+    )
+    intent = Intent(role=role, persona=role_spec.persona, prompt=role_spec.prompt)
+    traj = Trajectory(
+        id=traj_id,
+        scene=scene,
+        intent=intent,
+        model=ModelInfo(provider=model_cfg.provider, name=model_cfg.model_name, side="baseline"),
+        steps=[],
+        status="running",
+        created_at=_now(),
+    )
+    yield TrajectoryStartEvent(trajectory=traj)
+
+    obs = env.reset()  # 案件卷宗整页（含三个矛盾数字）
+    steps: list[Step] = []
+    t0 = time.perf_counter()
+
+    s0 = Step(
+        index=0,
+        stage=obs.stage,
+        thought="一次性读入全部信息源，开始通读各源全部内容。",
+        action=Action(
+            type="see",
+            target=RegionTarget(rect=Rect(x=0.0, y=0.0, w=1.0, h=1.0)),
+            label="一次性读入全部来源",
+        ),
+        observation=obs.to_protocol(),
+        timing=Timing(started_at=_now()),
+    )
+    steps.append(s0)
+    yield StepEvent(step=s0)
+
+    # 各来源整页图一次性喂入真实模型
+    image_paths = [Path(settings.assets_dir) / "pages" / st.image for st in role_spec.stages]
+
+    from ap_engine.models.openai_compatible import OpenAICompatiblePolicy
+    from ap_engine.models.prompts import build_oneshot_investigation_messages
+
+    tokens: Optional[TokenUsage] = None
+    try:
+        policy = OpenAICompatiblePolicy(model_cfg)
+        messages = build_oneshot_investigation_messages(intent, image_paths)
+        text, tokens = await policy.chat(messages)
+        conclusion = text.strip() or "（模型未给出结论）"
+    except Exception as exc:  # noqa: BLE001
+        conclusion = f"（模型调用失败：{exc}）"
+
+    s1 = Step(
+        index=1,
+        stage=obs.stage,
+        thought=conclusion,
+        action=Action(type="eos", label="OUTPUT: 读完各源直接作答"),
         observation=obs.to_protocol(),
         timing=Timing(started_at=_now()),
     )

@@ -21,11 +21,11 @@ export function narrate(step: Step | null): string {
     case "snapshot":
       return "回到整页全局，重新规划看哪里";
     case "navigate":
-      return label ? `主动回看「${label}」追溯原因` : "主动回看，追溯线索";
+      return label ? `数字对不上，回看「${label}」追溯口径差异` : "数字对不上，主动回看相关来源追溯原因";
     case "none":
       return "这块拿不准，先停下来多想几步";
     case "eos":
-      return "信息已经足够，主动收尾给出结论";
+      return "线索齐了，给出能同时解释各源数字的结论";
     default:
       return step.thought || "";
   }
@@ -52,4 +52,32 @@ export function abilityOf(step: Step | null): AbilityKey | null {
     default:
       return null;
   }
+}
+
+/** 取一步动作的 element 目标 id（若有）。 */
+export function targetElementId(step: Step | null): string | undefined {
+  const t = step?.action.target;
+  if (t && (t as { kind?: string }).kind === "element") {
+    return (t as { element_id: string }).element_id;
+  }
+  return undefined;
+}
+
+/** D4 多源破案的能力高亮：
+ * - 放大解谜脚注 / 给出结论 = 从一行小字推出全局一致性解释 → 分布逼近(approx)
+ * - 停下多想 = 隐空间采样效率(sampling)
+ * - 其余观察 / 回看 / 跳转 = 主动探索(explore)
+ */
+export function investigationAbility(
+  step: Step | null,
+  resolverElementId?: string,
+): AbilityKey | null {
+  if (!step) return null;
+  const a = step.action;
+  if (a.type === "eos") return "approx";
+  if (a.type === "zoom_in" && resolverElementId && targetElementId(step) === resolverElementId) {
+    return "approx";
+  }
+  if (a.type === "none") return "sampling";
+  return "explore";
 }

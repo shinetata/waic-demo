@@ -3,8 +3,15 @@ import { computed } from "vue";
 import type { Step } from "@ap/protocol";
 import { abilityOf, type AbilityKey } from "./narrate";
 
-const props = defineProps<{ current: Step | null }>();
-const active = computed<AbilityKey | null>(() => abilityOf(props.current));
+const props = defineProps<{
+  current: Step | null;
+  forceActive?: AbilityKey | null;
+  horizontal?: boolean;
+}>();
+// forceActive 显式传入时优先（D4 多源破案据 resolver/eos 高亮分布逼近）；否则按动作类型推断
+const active = computed<AbilityKey | null>(() =>
+  props.forceActive !== undefined ? props.forceActive : abilityOf(props.current),
+);
 
 const items: { key: AbilityKey; idx: string; title: string; desc: string }[] = [
   { key: "explore", idx: "①", title: "主动探索", desc: "自主聚焦关键信息，智能过滤无关内容" },
@@ -15,8 +22,8 @@ const items: { key: AbilityKey; idx: string; title: string; desc: string }[] = [
 
 <template>
   <div class="legend">
-    <header class="lg-hd"><span class="dot" /> 三大能力</header>
-    <div class="lg-list">
+    <header class="lg-hd"><span class="dot" /> 核心能力</header>
+    <div class="lg-list" :class="{ row: horizontal }">
       <div
         v-for="it in items"
         :key="it.key"
@@ -58,6 +65,13 @@ const items: { key: AbilityKey; idx: string; title: string; desc: string }[] = [
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.lg-list.row {
+  flex-direction: row;
+}
+.lg-list.row .lg-item {
+  flex: 1;
+  min-width: 0;
 }
 .lg-item {
   padding: 8px 11px;

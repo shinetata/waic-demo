@@ -12,6 +12,7 @@ from ap_engine.environments.base import (
     SceneSpec,
     StageSpec,
 )
+from ap_engine.environments.investigation import InvestigationEnvironment
 from ap_engine.environments.scenes import (
     SCENES,
     get_role,
@@ -30,8 +31,11 @@ def make_environment(
     asset_base_url: str = "/assets",
     traj_id: str = "traj",
 ) -> Environment:
-    """工厂：当前返回 SelfPageEnvironment；后期可按 scene 配置切换 RealBrowserEnvironment。"""
-    return SelfPageEnvironment(
+    """工厂：d4-* 多源破案 → InvestigationEnvironment（可自由回看）；其余 → SelfPageEnvironment。"""
+    env_cls = (
+        InvestigationEnvironment if scene_id.startswith("d4-") else SelfPageEnvironment
+    )
+    return env_cls(
         scene_id,
         role_key,
         assets_dir=assets_dir,
@@ -50,6 +54,7 @@ __all__ = [
     "StageSpec",
     "SCENES",
     "SelfPageEnvironment",
+    "InvestigationEnvironment",
     "get_role",
     "get_scene",
     "list_scenes",

@@ -63,7 +63,11 @@ export function usePlayer(side: ModelSide) {
     );
   }
 
-  async function startReplay(id: string, stepMs = 1200) {
+  // stepMs 可为定值，或按步类型变速的函数（D4 高潮慢放、铺垫快放）
+  async function startReplay(
+    id: string,
+    stepMs: number | ((step: Step, index: number) => number) = 1200,
+  ) {
     reset();
     try {
       const traj = await getTrajectory(id);
@@ -75,7 +79,9 @@ export function usePlayer(side: ModelSide) {
       const tick = () => {
         if (currentIndex.value < steps.value.length - 1) {
           currentIndex.value++;
-          replayTimer = window.setTimeout(tick, stepMs);
+          const cur = steps.value[currentIndex.value];
+          const delay = typeof stepMs === "function" ? stepMs(cur, currentIndex.value) : stepMs;
+          replayTimer = window.setTimeout(tick, delay);
         } else {
           status.value = "done";
         }

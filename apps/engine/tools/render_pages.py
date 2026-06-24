@@ -123,6 +123,48 @@ PAGESPEC: dict[str, dict] = {
             "cs-risk": ("风险提示小字", "region", "关键小字：现金流风险/免责，放大看清", None),
         },
     },
+    # ── D4 多源破案（investigator：案件卷宗 → 年报PDF / 券商研报 / 新闻门户报道 自由互跳）──
+    "case-index": {
+        "file": "case-index.html",
+        "elements": {
+            "case-title": ("案件标题 · 营收交叉核查", "region", "案件标题", None),
+            "case-task": ("核查任务卡 · 三源数字矛盾", "region", "任务说明与三个矛盾数字(152.3/104.2/超150)", None),
+            "src-link-report": ("公司年报PDF 152.3亿(合并口径)", "link", "点击进入年报PDF", "src-report"),
+            "src-link-broker": ("券商研报 104.2亿(主营口径)", "link", "点击进入券商研报", "src-broker"),
+            "src-link-press": ("新闻门户报道 超150亿(宣传)", "link", "点击进入新闻报道", "src-press"),
+        },
+    },
+    "src-report": {
+        "file": "src-report.html",
+        "elements": {
+            "a-header": ("PDF年报标题 · 2025 年度报告摘要", "region", "年报标题", None),
+            "a-table": ("合并利润表主要数据", "region", "营收/净利/毛利/现金流", None),
+            "a-revenue": ("营业收入(合并口径) 152.3亿 +14.0%", "region", "合并口径营收行", None),
+            "a-footnote": ("脚注 · 口径说明(关键钥匙)", "region", "关键小字：含关联交易约48.1亿、母公司主营约104.2亿，必须放大看清", None),
+            "a-link-broker": ("对照券商研报口径", "link", "点击进入券商研报", "src-broker"),
+            "a-link-press": ("对照新闻门户报道", "link", "点击进入新闻报道", "src-press"),
+        },
+    },
+    "src-broker": {
+        "file": "src-broker.html",
+        "elements": {
+            "b-header": ("研报标题 · 券商深度报告", "region", "研报标题", None),
+            "b-table": ("核心财务回顾与预测表", "region", "主营收入/毛利率/增速", None),
+            "b-revenue": ("主营业务收入(剔除关联交易) 104.2亿", "region", "主营口径营收行", None),
+            "b-note": ("口径小字 · 主营业务口径", "region", "本报告为主营业务收入口径", None),
+            "b-link-report": ("回看公司年报PDF原始披露", "link", "点击回到年报PDF核对口径", "src-report"),
+            "b-link-press": ("对照新闻门户报道", "link", "点击进入新闻报道", "src-press"),
+        },
+    },
+    "src-press": {
+        "file": "src-press.html",
+        "elements": {
+            "c-header": ("新闻大标题 · 营收突破150亿(抓眼球/宣传)", "region", "新闻标题", None),
+            "c-revenue": ("新闻导语：营收突破150亿(显眼宣传数字，口径需核实)", "region", "宣传口径营收", None),
+            "c-link-report": ("回看公司年报PDF原始披露", "link", "点击进入年报PDF", "src-report"),
+            "c-link-broker": ("对照券商研报主营口径", "link", "点击进入券商研报", "src-broker"),
+        },
+    },
 }
 
 _BBOX_JS = """(sel) => {

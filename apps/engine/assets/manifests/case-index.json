@@ -1,0 +1,71 @@
+{
+  "stage": "case-index",
+  "image": "case-index.png",
+  "width": 1120,
+  "height": 900,
+  "elements": [
+    {
+      "id": "case-title",
+      "label": "案件标题 · 营收交叉核查",
+      "kind": "region",
+      "hint": "案件标题",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.0839,
+        "w": 0.7679,
+        "h": 0.045
+      }
+    },
+    {
+      "id": "case-task",
+      "label": "核查任务卡 · 三源数字矛盾",
+      "kind": "region",
+      "hint": "任务说明与三个矛盾数字(152.3/104.2/超150)",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.2028,
+        "w": 0.7679,
+        "h": 0.2693
+      }
+    },
+    {
+      "id": "src-link-report",
+      "label": "公司年报PDF 152.3亿(合并口径)",
+      "kind": "link",
+      "hint": "点击进入年报PDF",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.4965,
+        "w": 0.7679,
+        "h": 0.0878
+      },
+      "to": "src-report"
+    },
+    {
+      "id": "src-link-broker",
+      "label": "券商研报 104.2亿(主营口径)",
+      "kind": "link",
+      "hint": "点击进入券商研报",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.6088,
+        "w": 0.7679,
+        "h": 0.0878
+      },
+      "to": "src-broker"
+    },
+    {
+      "id": "src-link-press",
+      "label": "新闻门户报道 超150亿(宣传)",
+      "kind": "link",
+      "hint": "点击进入新闻报道",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.721,
+        "w": 0.7679,
+        "h": 0.0878
+      },
+      "to": "src-press"
+    }
+  ]
+}

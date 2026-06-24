@@ -1,0 +1,58 @@
+{
+  "stage": "src-press",
+  "image": "src-press.png",
+  "width": 1120,
+  "height": 900,
+  "elements": [
+    {
+      "id": "c-header",
+      "label": "新闻大标题 · 营收突破150亿(抓眼球/宣传)",
+      "kind": "region",
+      "hint": "新闻标题",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.2494,
+        "w": 0.7679,
+        "h": 0.09
+      }
+    },
+    {
+      "id": "c-revenue",
+      "label": "新闻导语：营收突破150亿(显眼宣传数字，口径需核实)",
+      "kind": "region",
+      "hint": "宣传口径营收",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.4133,
+        "w": 0.7679,
+        "h": 0.0675
+      }
+    },
+    {
+      "id": "c-link-report",
+      "label": "回看公司年报PDF原始披露",
+      "kind": "link",
+      "hint": "点击进入年报PDF",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.6699,
+        "w": 0.7679,
+        "h": 0.0878
+      },
+      "to": "src-report"
+    },
+    {
+      "id": "c-link-broker",
+      "label": "对照券商研报主营口径",
+      "kind": "link",
+      "hint": "点击进入券商研报",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.7822,
+        "w": 0.7679,
+        "h": 0.0878
+      },
+      "to": "src-broker"
+    }
+  ]
+}

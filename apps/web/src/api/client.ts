@@ -73,6 +73,45 @@ export async function getPreview(
   return { image: d.image ? assetUrl(d.image) : "", stage: d.stage || "" };
 }
 
+// ── D4 多源破案：证据板 case spec（与 engine cases.py case_to_dict 对齐）──
+export interface HeadlineClaim {
+  element_id: string;
+  metric: string;
+  value_text: string;
+  caliber: string;
+}
+export interface SourceNode {
+  id: string;
+  title: string;
+  kind: string;
+  headline: HeadlineClaim;
+}
+export interface ConflictEdge {
+  a: string;
+  b: string;
+  label: string;
+}
+export interface CaseResolver {
+  element_id: string;
+  source_id: string;
+  insight: string;
+}
+export interface CaseSpec {
+  id: string;
+  title: string;
+  question: string;
+  index_stage: string;
+  sources: SourceNode[];
+  conflicts: ConflictEdge[];
+  resolver: CaseResolver;
+  baseline_hint: string;
+}
+
+export async function getCase(scene: string): Promise<CaseSpec> {
+  const r = await fetch(`${BASE}/api/case?scene=${encodeURIComponent(scene)}`);
+  return r.json();
+}
+
 export interface RunParams {
   scene: string;
   role: string;

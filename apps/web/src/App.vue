@@ -2,8 +2,15 @@
 import { onMounted, ref } from "vue";
 import { getConfig } from "./api/client";
 import D0View from "./scenes/d0-browser/D0View.vue";
+import D4View from "./scenes/d4-investigation/D4View.vue";
 
 const connected = ref(false);
+type DemoKey = "d0" | "d4";
+const demo = ref<DemoKey>("d0");
+const tabs: { key: DemoKey; label: string; sub: string }[] = [
+  { key: "d0", label: "浏览器主动感知", sub: "" },
+  { key: "d4", label: "多源破案", sub: "" },
+];
 
 onMounted(async () => {
   try {
@@ -25,13 +32,25 @@ onMounted(async () => {
           <p class="tag">不是在模仿人说话，是在建模人的思维 · Not fitting language. Modeling cognition.</p>
         </div>
       </div>
+      <nav class="tabs">
+        <button
+          v-for="t in tabs"
+          :key="t.key"
+          class="tab"
+          :class="{ on: demo === t.key }"
+          @click="demo = t.key"
+        >
+          {{ t.label }}<small>{{ t.sub }}</small>
+        </button>
+      </nav>
       <div class="conn" :class="{ ok: connected }">
         {{ connected ? "引擎已连接" : "引擎未连接" }}
       </div>
     </header>
 
     <main>
-      <D0View />
+      <D0View v-show="demo === 'd0'" />
+      <D4View v-show="demo === 'd4'" />
     </main>
   </div>
 </template>
@@ -88,8 +107,44 @@ h1 {
   background: #e7f9ef;
   color: var(--ok);
 }
+.tabs {
+  display: flex;
+  gap: 8px;
+  background: var(--surface-2);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.tab {
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  padding: 7px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  transition: all 0.2s;
+}
+.tab small {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+.tab.on {
+  background: var(--ours);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
 main {
   flex: 1;
   min-height: 0;
+}
+main > * {
+  height: 100%;
 }
 </style>

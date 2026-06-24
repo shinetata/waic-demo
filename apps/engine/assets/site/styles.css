@@ -606,3 +606,80 @@ body {
   display: block;
   height: 100%;
 }
+
+/* ── D4 异构媒介：PDF 财报文档样式（来源·公司年报，营造 PDF 阅读器既视感） ── */
+.pdf-doc {
+  max-width: 840px;
+  margin: 16px auto;
+  background: #fff;
+  border: 1px solid #d6d9e0;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(20, 20, 40, 0.16);
+  overflow: hidden;
+}
+.pdf-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #eceef2;
+  border-bottom: 1px solid #d6d9e0;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  font-family: var(--mono);
+}
+.pdf-bar .pdf-tag {
+  font-weight: 700;
+  color: #b3261e;
+  border: 1px solid #b3261e;
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.pdf-page {
+  padding: 30px 46px 28px;
+  font-family: "Songti SC", "SimSun", Georgia, "Times New Roman", serif;
+}
+.pdf-org {
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-dim);
+  letter-spacing: 3px;
+}
+.pdf-title {
+  text-align: center;
+  font-size: 25px;
+  font-weight: 800;
+  margin: 8px 0 4px;
+}
+.pdf-meta {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-mute);
+  margin-bottom: 18px;
+  font-family: var(--sans);
+}
+.pdf-h {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 18px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #1b1d21;
+}
+.pdf-page .detail-body p {
+  font-family: inherit;
+}
+.pdf-foot {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-mute);
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+  padding-top: 8px;
+  font-family: var(--sans);
+}
+/* 新闻门户报道：复用 .np-* 报头，正文用 .detail；蓝色独家标签 */
+.detail-tag.news {
+  background: #0a5bd3;
+}

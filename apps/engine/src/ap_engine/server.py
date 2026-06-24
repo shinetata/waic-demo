@@ -57,6 +57,19 @@ def api_scenes() -> dict:
         return {"scenes": [], "note": f"environments not ready: {exc}"}
 
 
+@app.get("/api/case")
+def api_case(scene: str = "d4-revenue-probe"):
+    """返回多源破案的证据板 case spec（sources/conflicts/resolver），供前端绘制证据板。"""
+    try:
+        from ap_engine.cases import case_to_dict, get_case
+
+        return case_to_dict(get_case(scene))
+    except KeyError:
+        return JSONResponse({"error": f"unknown case: {scene}"}, status_code=404)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": str(exc)}
+
+
 @app.get("/api/preview")
 def api_preview(scene: str = "d0-news-portal", role: str = "trader") -> dict:
     """返回该角色首个 stage 的整页图，供前端运行前即展示。"""

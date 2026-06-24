@@ -3,6 +3,7 @@
 真实模型实时推理驱动的 **Active Lifting**（认知基模 · 主动感知）闭环演示：
 
 - **D0 浏览器主动感知**：认知基模面对一整页信息，不一次性读入，而是逐步主动选择看哪里、凑近细看关键数字、跳过无关区域、拿不准就停下多想，信息够了主动收尾；右侧以"现有做法（一次性读入、读完再想）"作对照反衬。
+- **D4 多源破案**：面对三个口径不一、数字对不上的营收信息源（公司年报 / 券商研报 / 新闻稿），认知基模主动逐源记数字、发现矛盾后回看年报、放大不起眼的脚注查到"会计口径差异"，给出能同时解释三个数字的一致性结论；前端以"证据板"（矛盾红线 → 绿线 RESOLVED）+ 推理日志呈现，右侧 baseline 一次性读入往往只能报"数据矛盾"。
 
 ## 架构（三层 + 闭环）
 
@@ -36,7 +37,15 @@ uv run uvicorn ap_engine.server:app --reload --port 8000
 
 ```bash
 uv run python -m ap_engine.cli --scene d0-news-portal --role trader --side ours
+# D4 多源破案（需先生成资产，见下）：
+uv run python -m ap_engine.cli --scene d4-revenue-probe --role investigator --side ours
 ```
+
+> **D4 资产生成（一次性）**：D4 的四张信息源整页图 + manifest 由构建脚本渲染产出，未生成时引擎会自动跳过 D4（D0 不受影响），生成后即自动可用：
+>
+> ```bash
+> PLAYWRIGHT_BROWSERS_PATH="$PWD/.pw-browsers" uv run --with playwright python tools/render_pages.py
+> ```
 
 ### 2. 前端（pnpm）
 
