@@ -20,21 +20,21 @@ watch(
 );
 
 const ACT_TEXT: Record<string, string> = {
-  see: "看",
+  see: "观察",
   zoom_in: "放大",
   zoom_out: "缩小",
   scroll: "移动",
   click: "进入",
   navigate: "回看",
   snapshot: "回到全局",
-  none: "停下多想",
-  eos: "给结论",
+  none: "深度推演",
+  eos: "输出结论",
 };
 </script>
 
 <template>
   <div class="mind">
-    <header class="mind-hd"><span class="dot" /> 模型在想什么</header>
+    <header class="mind-hd"><span class="dot" /> 模型思维路径</header>
     <ol ref="listEl" class="mind-list">
       <li
         v-for="s in visible"

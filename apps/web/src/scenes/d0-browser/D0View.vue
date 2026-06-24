@@ -79,7 +79,7 @@ async function replayLatest() {
     <section class="main-row">
       <div class="stage-col">
         <div class="col-hd">
-          <span class="badge">认知基模</span> 认知基模在做什么
+          <span class="badge">认知基模</span> 模拟人的思维方式，执行复杂任务
         </div>
         <StageView
           :steps="ourSteps"

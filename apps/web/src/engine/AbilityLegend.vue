@@ -7,9 +7,9 @@ const props = defineProps<{ current: Step | null }>();
 const active = computed<AbilityKey | null>(() => abilityOf(props.current));
 
 const items: { key: AbilityKey; idx: string; title: string; desc: string }[] = [
-  { key: "explore", idx: "①", title: "知道该看哪里", desc: "主动选择看哪里、跳过无关" },
-  { key: "sampling", idx: "②", title: "想得少但想得对", desc: "拿不准就停下多想，更快想对" },
-  { key: "approx", idx: "③", title: "学得少但学得准", desc: "更少数据逼近背后的规律" },
+  { key: "explore", idx: "①", title: "主动探索", desc: "自主聚焦关键信息，智能过滤无关内容" },
+  { key: "sampling", idx: "②", title: "隐空间采样效率", desc: "不确定时深度推演，以更少步数确保准确性" },
+  { key: "approx", idx: "③", title: "分布逼近", desc: "更少数据逼近底层的规律" },
 ];
 </script>
 

@@ -1,5 +1,6 @@
 # deps
 node_modules/
+.pnpm-store/
 .venv/
 __pycache__/
 *.pyc
@@ -28,3 +29,4 @@ apps/engine/.pw-browsers/
 # misc
 *.log
 .DS_Store
+.logs/
