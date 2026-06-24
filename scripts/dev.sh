@@ -2,9 +2,12 @@
 # 一键重新打包并重启前后端（仅在 waic-demo 仓库内操作，不在父目录执行任何命令）
 #
 # 用法：
-#   ./scripts/dev.sh         # 停旧进程 → 重新打包前端 → 重启引擎 + 前端预览
-#   ./scripts/dev.sh stop    # 仅停止前后端
+#   ./scripts/dev.sh          # 停旧进程 → 渲染页面素材 → 重新打包前端 → 重启引擎 + 前端预览
+#   ./scripts/dev.sh stop     # 仅停止前后端
+#   ./scripts/dev.sh install  # 安装依赖（pnpm，store 固定在仓库内）
+#   RENDER=0 ./scripts/dev.sh # 跳过页面渲染（仅改了前端/引擎代码、未改 HTML 素材时更快）
 #
+# 页面渲染依赖 Playwright + 本地 chromium 缓存（apps/engine/.pw-browsers）；首次需联网拉取 playwright。
 # 可用环境变量覆盖端口：ENGINE_PORT(默认8000) WEB_PORT(默认4173)
 
 set -uo pipefail
@@ -65,18 +68,30 @@ if [ "${1:-}" = "install" ]; then
   exit 0
 fi
 
-echo "[1/4] 停止旧的前后端进程…"
+echo "[1/5] 停止旧的前后端进程…"
 kill_port "$ENGINE_PORT"
 kill_port "$WEB_PORT"
 
-echo "[2/4] 重新打包前端（pnpm -F @ap/web build）…"
+echo "[2/5] 重新渲染页面素材（Playwright → assets/pages + manifests）…"
+if [ "${RENDER:-1}" = "1" ]; then
+  if ( cd apps/engine && PLAYWRIGHT_BROWSERS_PATH="$PWD/.pw-browsers" uv run --with playwright python tools/render_pages.py ) >"$LOG_DIR/render.log" 2>&1; then
+    echo "  ✓ 渲染完成：$(grep -c 'rendered ' "$LOG_DIR/render.log" 2>/dev/null || echo '?') 页（日志 $LOG_DIR/render.log）"
+  else
+    echo "  ⚠ 渲染失败，沿用现有素材继续（日志末尾）："
+    tail -n 8 "$LOG_DIR/render.log" 2>/dev/null | sed 's/^/    /'
+  fi
+else
+  echo "  跳过渲染（RENDER=0）"
+fi
+
+echo "[3/5] 重新打包前端（pnpm -F @ap/web build）…"
 pnpm -F @ap/web build
 
-echo "[3/4] 启动引擎（后台, :${ENGINE_PORT}）…"
+echo "[4/5] 启动引擎（后台, :${ENGINE_PORT}）…"
 ( cd apps/engine && nohup uv run uvicorn ap_engine.server:app --port "$ENGINE_PORT" >"$LOG_DIR/engine.log" 2>&1 & echo $! >"$LOG_DIR/engine.pid" )
 echo "  pid=$(cat "$LOG_DIR/engine.pid" 2>/dev/null || echo '?')  log=$LOG_DIR/engine.log"
 
-echo "[4/4] 启动前端预览（后台, :${WEB_PORT}）…"
+echo "[5/5] 启动前端预览（后台, :${WEB_PORT}）…"
 nohup pnpm -F @ap/web preview --port "$WEB_PORT" >"$LOG_DIR/web.log" 2>&1 &
 echo $! >"$LOG_DIR/web.pid"
 echo "  pid=$(cat "$LOG_DIR/web.pid" 2>/dev/null || echo '?')  log=$LOG_DIR/web.log"
