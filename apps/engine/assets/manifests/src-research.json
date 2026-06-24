@@ -1,0 +1,82 @@
+{
+  "stage": "src-research",
+  "image": "src-research.png",
+  "width": 1120,
+  "height": 924,
+  "elements": [
+    {
+      "id": "res-header",
+      "label": "标题 · 中金公司深度研报",
+      "kind": "region",
+      "hint": "来源身份：券商研报",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.0817,
+        "w": 0.7679,
+        "h": 0.0438
+      }
+    },
+    {
+      "id": "res-table",
+      "label": "盈利预测表",
+      "kind": "region",
+      "hint": "合并口径预测表",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.1975,
+        "w": 0.7679,
+        "h": 0.3033
+      }
+    },
+    {
+      "id": "res-keyvalue",
+      "label": "营业收入 15.0 亿",
+      "kind": "region",
+      "hint": "关键数字：合并报表口径，放大确认",
+      "rect": {
+        "x": 0.133,
+        "y": 0.2944,
+        "w": 0.7339,
+        "h": 0.0425
+      }
+    },
+    {
+      "id": "res-footnote",
+      "label": "脚注 · 合并口径说明",
+      "kind": "region",
+      "hint": "关键小字：合并口径/本部10.2亿+关联4.8亿，放大看清",
+      "rect": {
+        "x": 0.133,
+        "y": 0.4332,
+        "w": 0.7339,
+        "h": 0.0492
+      }
+    },
+    {
+      "id": "res-to-annual",
+      "label": "回看 · 年度报告",
+      "kind": "link",
+      "hint": "主动回看年报核对母公司口径",
+      "rect": {
+        "x": 0.133,
+        "y": 0.7174,
+        "w": 0.7339,
+        "h": 0.0855
+      },
+      "to": "src-annual"
+    },
+    {
+      "id": "res-to-press",
+      "label": "跳转 · 查看新闻报道",
+      "kind": "link",
+      "hint": "主动核查媒体报道营收",
+      "rect": {
+        "x": 0.133,
+        "y": 0.8268,
+        "w": 0.7339,
+        "h": 0.0855
+      },
+      "to": "src-press"
+    }
+  ]
+}

@@ -40,6 +40,14 @@ _MARKET_IMG, _MARKET = _load_manifest("market-data")
 _REPORT_IMG, _REPORT = _load_manifest("report")
 _CONSENSUS_IMG, _CONSENSUS = _load_manifest("consensus")
 
+# D4 多源破案：3 个信息源 × 2 组案例（revenue 营收 / product 续航）
+_ANNUAL_IMG, _ANNUAL = _load_manifest("src-annual")
+_RESEARCH_IMG, _RESEARCH = _load_manifest("src-research")
+_PRESS_IMG, _PRESS = _load_manifest("src-press")
+_OFFICIAL_IMG, _OFFICIAL = _load_manifest("src-official")
+_REVIEW_IMG, _REVIEW = _load_manifest("src-review")
+_FORUM_IMG, _FORUM = _load_manifest("src-forum")
+
 
 def _pick(pool: dict[str, ElementSpec], ids: list[str]) -> list[ElementSpec]:
     return [pool[i] for i in ids if i in pool]
@@ -109,7 +117,72 @@ SCENES: dict[str, SceneSpec] = {
                 ],
             ),
         },
-    )
+    ),
+    # D4 多源破案：多源信息核查，source 间网状可回看（link.to 互相指向）
+    "d4-investigation": SceneSpec(
+        id="d4-investigation",
+        title="多源破案 · D4",
+        roles={
+            "revenue": RoleSpec(
+                key="revenue",
+                persona="ANALYST · 财务分析师",
+                prompt=(
+                    "锐芯科技 2025 年的真实营收到底是多少？年报、券商研报、新闻报道三个来源"
+                    "说法不一，请逐个核查每个来源的营收数字与口径，找出数字背后的真实口径，"
+                    "并给出一致性解释。"
+                ),
+                stages=[
+                    StageSpec(
+                        id="src-annual",
+                        title="证据 A · 年度报告",
+                        image=_ANNUAL_IMG,
+                        elements=list(_ANNUAL.values()),
+                    ),
+                    StageSpec(
+                        id="src-research",
+                        title="证据 B · 券商研报",
+                        image=_RESEARCH_IMG,
+                        elements=list(_RESEARCH.values()),
+                    ),
+                    StageSpec(
+                        id="src-press",
+                        title="证据 C · 新闻报道",
+                        image=_PRESS_IMG,
+                        elements=list(_PRESS.values()),
+                    ),
+                ],
+            ),
+            "product": RoleSpec(
+                key="product",
+                persona="REVIEWER · 产品评测编辑",
+                prompt=(
+                    "锐星 EV 的真实续航到底是多少？官网、媒体评测、车主论坛三个来源数据"
+                    "差距很大，请逐个核查每个来源的续航数字与测试条件，找出差异原因，"
+                    "并给出一致性解释。"
+                ),
+                stages=[
+                    StageSpec(
+                        id="src-official",
+                        title="证据 A · 官方参数",
+                        image=_OFFICIAL_IMG,
+                        elements=list(_OFFICIAL.values()),
+                    ),
+                    StageSpec(
+                        id="src-review",
+                        title="证据 B · 媒体评测",
+                        image=_REVIEW_IMG,
+                        elements=list(_REVIEW.values()),
+                    ),
+                    StageSpec(
+                        id="src-forum",
+                        title="证据 C · 用户反馈",
+                        image=_FORUM_IMG,
+                        elements=list(_FORUM.values()),
+                    ),
+                ],
+            ),
+        },
+    ),
 }
 
 

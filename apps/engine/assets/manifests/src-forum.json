@@ -1,0 +1,70 @@
+{
+  "stage": "src-forum",
+  "image": "src-forum.png",
+  "width": 1120,
+  "height": 900,
+  "elements": [
+    {
+      "id": "frm-header",
+      "label": "标题 · 车主论坛续航汇总",
+      "kind": "region",
+      "hint": "来源身份：真实车主口碑",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.0839,
+        "w": 0.7679,
+        "h": 0.045
+      }
+    },
+    {
+      "id": "frm-keyvalue",
+      "label": "冬季实测续航 380 km",
+      "kind": "region",
+      "hint": "关键数字：冬季车主实测，放大确认",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.2028,
+        "w": 0.7679,
+        "h": 0.1594
+      }
+    },
+    {
+      "id": "frm-footnote",
+      "label": "脚注 · 车主实测条件",
+      "kind": "region",
+      "hint": "关键小字：-5℃冬季/暖风/拥堵满载，放大看清",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.5146,
+        "w": 0.7679,
+        "h": 0.0506
+      }
+    },
+    {
+      "id": "frm-to-official",
+      "label": "回看 · 官方参数",
+      "kind": "link",
+      "hint": "主动回看官网CLTC工况条件",
+      "rect": {
+        "x": 0.133,
+        "y": 0.653,
+        "w": 0.7339,
+        "h": 0.0878
+      },
+      "to": "src-official"
+    },
+    {
+      "id": "frm-to-review",
+      "label": "跳转 · 查看媒体评测",
+      "kind": "link",
+      "hint": "主动核查媒体夏季实测",
+      "rect": {
+        "x": 0.133,
+        "y": 0.7652,
+        "w": 0.7339,
+        "h": 0.0878
+      },
+      "to": "src-review"
+    }
+  ]
+}

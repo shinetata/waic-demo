@@ -1,0 +1,70 @@
+{
+  "stage": "src-press",
+  "image": "src-press.png",
+  "width": 1120,
+  "height": 900,
+  "elements": [
+    {
+      "id": "prs-header",
+      "label": "标题 · 财经媒体报道",
+      "kind": "region",
+      "hint": "来源身份：转引报道",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.0839,
+        "w": 0.7679,
+        "h": 0.045
+      }
+    },
+    {
+      "id": "prs-keyvalue",
+      "label": "报道营收 12.6 亿",
+      "kind": "region",
+      "hint": "关键数字：口径未注明，放大确认",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.2028,
+        "w": 0.7679,
+        "h": 0.1594
+      }
+    },
+    {
+      "id": "prs-footnote",
+      "label": "脚注 · 数据来源说明",
+      "kind": "region",
+      "hint": "关键小字：据公开资料整理/口径未明确，放大看清",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.5146,
+        "w": 0.7679,
+        "h": 0.0331
+      }
+    },
+    {
+      "id": "prs-to-annual",
+      "label": "回看 · 年度报告",
+      "kind": "link",
+      "hint": "主动回看年报核对真实营收",
+      "rect": {
+        "x": 0.133,
+        "y": 0.6355,
+        "w": 0.7339,
+        "h": 0.0878
+      },
+      "to": "src-annual"
+    },
+    {
+      "id": "prs-to-research",
+      "label": "跳转 · 查看券商研报",
+      "kind": "link",
+      "hint": "主动核查研报营收",
+      "rect": {
+        "x": 0.133,
+        "y": 0.7477,
+        "w": 0.7339,
+        "h": 0.0878
+      },
+      "to": "src-research"
+    }
+  ]
+}

@@ -133,6 +133,7 @@ async def run_trajectory(
             max_steps=max_steps,
             history=steps,
             observation=obs,
+            scene_id=scene,
         )
         s0 = time.perf_counter()
         decision = await policy.decide(inp)
@@ -141,12 +142,15 @@ async def run_trajectory(
         action = decision.action
         thought = decision.thought
         sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
-        # 规整①：进入新页后未充分观察就 click，改写为先 see 一个未看区域（先看清再导航）
-        if action.type == "click" and stage_observe < _MIN_OBSERVE_BEFORE_NAV:
+        # 规整①：进入新页/来源后未充分观察就 click 跳走，改写为先 see 一个未看区域（先看清再跳）
+        # D0 要求 _MIN_OBSERVE_BEFORE_NAV 次；多源破案每个来源至少观察 2 次才允许 click 跳走，
+        # 防止在来源间空跳横跳（navigate 主动回看不拦截）
+        _min_obs = 2 if scene == "d4-investigation" else _MIN_OBSERVE_BEFORE_NAV
+        if action.type == "click" and stage_observe < _min_obs:
             forced = _coerce_observe(obs, stage_seen_ids)
             if forced is not None:
                 action = forced
-                thought = "先把本页关键区域看清楚，再决定是否进入下一页继续核查。"
+                thought = "先把本来源的关键数字与脚注看清楚，再跳转到下一来源继续核查。"
                 sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
         # 规整②：与上一步完全相同的观察动作（原地打转）→ 换一个本页未看区域，推进核查
         elif sig == prev_sig and action.type in _observe_types:
@@ -187,8 +191,8 @@ async def run_trajectory(
         if sig == prev_sig and action.type != "none":
             repeat += 1
             if repeat >= 3:
-                # 末页（无可进入链接）反复纠结：视为已完成核查，正常收尾
-                if not any(e.kind == "link" for e in obs.elements):
+                # 反复纠结同一动作：D0 末页（无链接）或多源场景（已核查来源池）视为完成
+                if scene == "d4-investigation" or not any(e.kind == "link" for e in obs.elements):
                     reached_eos = True
                 break
         else:
@@ -296,12 +300,18 @@ async def run_oneshot_trajectory(
 
     # 调真实模型：基于整页图直接作答
     from ap_engine.models.openai_compatible import OpenAICompatiblePolicy
-    from ap_engine.models.prompts import build_oneshot_messages
+    from ap_engine.models.prompts import build_oneshot_messages, build_oneshot_multisource_messages
 
     tokens: Optional[TokenUsage] = None
     try:
         policy = OpenAICompatiblePolicy(model_cfg)
-        messages = build_oneshot_messages(intent, obs.full_path)
+        if scene == "d4-investigation":
+            # 多源对照：把所有来源整图一次性喂入，期望被矛盾数字迷惑
+            pages_dir = Path(settings.assets_dir) / "pages"
+            image_paths = [pages_dir / st.image for st in role_spec.stages]
+            messages = build_oneshot_multisource_messages(intent, image_paths)
+        else:
+            messages = build_oneshot_messages(intent, obs.full_path)
         text, tokens = await policy.chat(messages)
         conclusion = text.strip() or "（模型未给出结论）"
     except Exception as exc:  # noqa: BLE001

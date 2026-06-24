@@ -123,6 +123,71 @@ PAGESPEC: dict[str, dict] = {
             "cs-risk": ("风险提示小字", "region", "关键小字：现金流风险/免责，放大看清", None),
         },
     },
+    # ── D4 多源破案：3 个信息源 × 2 组案例（revenue 营收 / product 续航）──
+    # source 间用 link 互相指向，形成可主动回看的网状证据池。
+    "src-annual": {
+        "file": "src-annual.html",
+        "elements": {
+            "ann-header": ("标题 · 锐芯科技 2025 年报摘要", "region", "来源身份：法定年报披露", None),
+            "ann-table": ("主要财务数据表", "region", "母公司口径财务表", None),
+            "ann-keyvalue": ("营业收入 10.2 亿", "region", "关键数字：母公司主营口径，放大确认", None),
+            "ann-footnote": ("脚注 · 口径与关联交易说明", "region", "关键小字：母公司口径/含关联方4.8亿/合并15.0亿，放大看清", None),
+            "ann-to-research": ("跳转 · 查看券商研报", "link", "主动核查研报营收是否一致", "src-research"),
+            "ann-to-press": ("跳转 · 查看新闻报道", "link", "主动核查媒体报道营收是否一致", "src-press"),
+        },
+    },
+    "src-research": {
+        "file": "src-research.html",
+        "elements": {
+            "res-header": ("标题 · 中金公司深度研报", "region", "来源身份：券商研报", None),
+            "res-table": ("盈利预测表", "region", "合并口径预测表", None),
+            "res-keyvalue": ("营业收入 15.0 亿", "region", "关键数字：合并报表口径，放大确认", None),
+            "res-footnote": ("脚注 · 合并口径说明", "region", "关键小字：合并口径/本部10.2亿+关联4.8亿，放大看清", None),
+            "res-to-annual": ("回看 · 年度报告", "link", "主动回看年报核对母公司口径", "src-annual"),
+            "res-to-press": ("跳转 · 查看新闻报道", "link", "主动核查媒体报道营收", "src-press"),
+        },
+    },
+    "src-press": {
+        "file": "src-press.html",
+        "elements": {
+            "prs-header": ("标题 · 财经媒体报道", "region", "来源身份：转引报道", None),
+            "prs-keyvalue": ("报道营收 12.6 亿", "region", "关键数字：口径未注明，放大确认", None),
+            "prs-footnote": ("脚注 · 数据来源说明", "region", "关键小字：据公开资料整理/口径未明确，放大看清", None),
+            "prs-to-annual": ("回看 · 年度报告", "link", "主动回看年报核对真实营收", "src-annual"),
+            "prs-to-research": ("跳转 · 查看券商研报", "link", "主动核查研报营收", "src-research"),
+        },
+    },
+    "src-official": {
+        "file": "src-official.html",
+        "elements": {
+            "off-header": ("标题 · 锐星 EV 官方参数", "region", "来源身份：官网规格", None),
+            "off-quad": ("核心参数四宫格", "region", "续航/加速/快充/质量", None),
+            "off-keyvalue": ("CLTC 续航 605 km", "region", "关键数字：官方CLTC续航，放大确认", None),
+            "off-footnote": ("脚注 · CLTC 测试工况条件", "region", "关键小字：CLTC工况/25℃/空调关闭，放大看清", None),
+            "off-to-review": ("跳转 · 查看媒体评测", "link", "主动核查媒体实测续航", "src-review"),
+            "off-to-forum": ("跳转 · 查看用户反馈", "link", "主动核查车主实测续航", "src-forum"),
+        },
+    },
+    "src-review": {
+        "file": "src-review.html",
+        "elements": {
+            "rev-header": ("标题 · 媒体实测评测", "region", "来源身份：汽车媒体长测", None),
+            "rev-keyvalue": ("实测续航 432 km", "region", "关键数字：夏季高速实测，放大确认", None),
+            "rev-footnote": ("脚注 · 实测条件说明", "region", "关键小字：35℃夏季/空调/高速80%，放大看清", None),
+            "rev-to-official": ("回看 · 官方参数", "link", "主动回看官网CLTC工况条件", "src-official"),
+            "rev-to-forum": ("跳转 · 查看用户反馈", "link", "主动核查车主冬季续航", "src-forum"),
+        },
+    },
+    "src-forum": {
+        "file": "src-forum.html",
+        "elements": {
+            "frm-header": ("标题 · 车主论坛续航汇总", "region", "来源身份：真实车主口碑", None),
+            "frm-keyvalue": ("冬季实测续航 380 km", "region", "关键数字：冬季车主实测，放大确认", None),
+            "frm-footnote": ("脚注 · 车主实测条件", "region", "关键小字：-5℃冬季/暖风/拥堵满载，放大看清", None),
+            "frm-to-official": ("回看 · 官方参数", "link", "主动回看官网CLTC工况条件", "src-official"),
+            "frm-to-review": ("跳转 · 查看媒体评测", "link", "主动核查媒体夏季实测", "src-review"),
+        },
+    },
 }
 
 _BBOX_JS = """(sel) => {

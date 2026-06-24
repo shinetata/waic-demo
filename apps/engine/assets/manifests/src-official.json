@@ -1,0 +1,82 @@
+{
+  "stage": "src-official",
+  "image": "src-official.png",
+  "width": 1120,
+  "height": 900,
+  "elements": [
+    {
+      "id": "off-header",
+      "label": "标题 · 锐星 EV 官方参数",
+      "kind": "region",
+      "hint": "来源身份：官网规格",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.0839,
+        "w": 0.7679,
+        "h": 0.045
+      }
+    },
+    {
+      "id": "off-quad",
+      "label": "核心参数四宫格",
+      "kind": "region",
+      "hint": "续航/加速/快充/质量",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.2028,
+        "w": 0.7679,
+        "h": 0.085
+      }
+    },
+    {
+      "id": "off-keyvalue",
+      "label": "CLTC 续航 605 km",
+      "kind": "region",
+      "hint": "关键数字：官方CLTC续航，放大确认",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.2028,
+        "w": 0.1839,
+        "h": 0.085
+      }
+    },
+    {
+      "id": "off-footnote",
+      "label": "脚注 · CLTC 测试工况条件",
+      "kind": "region",
+      "hint": "关键小字：CLTC工况/25℃/空调关闭，放大看清",
+      "rect": {
+        "x": 0.1161,
+        "y": 0.402,
+        "w": 0.7679,
+        "h": 0.0506
+      }
+    },
+    {
+      "id": "off-to-review",
+      "label": "跳转 · 查看媒体评测",
+      "kind": "link",
+      "hint": "主动核查媒体实测续航",
+      "rect": {
+        "x": 0.133,
+        "y": 0.5403,
+        "w": 0.7339,
+        "h": 0.0878
+      },
+      "to": "src-review"
+    },
+    {
+      "id": "off-to-forum",
+      "label": "跳转 · 查看用户反馈",
+      "kind": "link",
+      "hint": "主动核查车主实测续航",
+      "rect": {
+        "x": 0.133,
+        "y": 0.6525,
+        "w": 0.7339,
+        "h": 0.0878
+      },
+      "to": "src-forum"
+    }
+  ]
+}

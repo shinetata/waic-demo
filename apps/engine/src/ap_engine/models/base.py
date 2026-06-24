@@ -23,6 +23,7 @@ class PolicyInput:
     max_steps: int
     history: list[Step]
     observation: EnvObservation
+    scene_id: str = ""
 
 
 @dataclass

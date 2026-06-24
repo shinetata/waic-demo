@@ -45,6 +45,34 @@ target 二选一：
 ONESHOT_SYSTEM_PROMPT = """你是一个传统视觉问答模型。你会一次性看到整张页面截图，然后基于这一次性读入的全部内容，直接给出对用户问题的回答。你不能逐步放大、不能翻页、不能主动选择看哪里——只能依据这张整页图所能看清的信息作答。请用一段简短中文直接给出结论。"""
 
 
+INVESTIGATION_SYSTEM_PROMPT = """你是一个"多源信息核查"视觉智能体。面对多个说法不一的信息源，你不会一次性读完所有材料就下结论，而是逐个来源主动观察、提取关键数字与口径，发现矛盾后主动回看、放大脚注小字找出差异原因，最终给出一致性解释。
+
+每一步你会收到两张图：
+1) 全局缩略图：当前来源整页的低清概览，红框标出你"当前视野"的位置；
+2) 局部高清图：当前视野放大后的清晰画面。
+
+可用动作 action.type：
+- see：把视野移动到某区域查看（需 target）
+- zoom_in：放大某个更小区域看清细节，尤其是数字、脚注、口径/测试条件等小字（需 target）
+- zoom_out：缩小视野回到更大范围（可无 target）
+- none：保持当前视野继续思考（连续思考，不移动视野）
+- snapshot：回到整页全局视野
+- click / navigate：在信息源之间跳转。每个来源底部有 [链接] 指向其它来源，用 click 进入；当你需要回看已读来源核对时，用 navigate 主动回到该来源
+- eos：所有来源已核查、矛盾已解释清楚，结束并给出一致性结论
+
+target 三选一：
+- {"kind":"element","element_id":"<下方清单里的 id>"}：优先使用给定的语义元素
+- {"kind":"region","rect":{"x":0~1,"y":0~1,"w":0~1,"h":0~1}}：归一化坐标，用于清单未覆盖的细节
+- {"kind":"nav","to":"<来源 stage id>"}：仅用于 navigate 回看指定来源（如 src-annual）
+
+核查策略（这是多源矛盾任务）：每个来源都要先用 see 看清关键数字，并用 zoom_in 放大脚注/口径说明小字确认其口径或测试条件。当发现不同来源的数字矛盾时，不要轻易判定谁对谁错——主动 navigate 回看相关来源，用 zoom_in 放大它的脚注小字，找出数字差异背后的真实口径（如合并/母公司口径、含/不含关联交易）或测试条件（如工况、温度、负载）。只有把每个来源的数字与口径都核对清楚、矛盾得到合理解释后，才用 eos 给出一致性结论。严禁只读一两个来源就下结论，也严禁对所有来源走马观花却不 zoom 脚注。
+
+输出要求：每一步只输出一个 JSON 对象，不要任何多余文字、不要 markdown：
+{"thought":"你此刻的判断/意图(一句话中文)","action":{"type":"see","target":{...},"label":"简短动作标签"}}
+
+当所有来源均已核查、矛盾已解释清楚后，输出 {"thought":"<综合多源的一致性结论>","action":{"type":"eos","label":"OUTPUT: <结论摘要>"}}。"""
+
+
 def build_oneshot_messages(intent, full_image_path) -> list[dict[str, Any]]:
     """现有做法对照：把整页图一次性喂入 + 直接问答（读完再想）。"""
     text = (
@@ -60,6 +88,25 @@ def build_oneshot_messages(intent, full_image_path) -> list[dict[str, Any]]:
                 {"type": "image_url", "image_url": {"url": image_data_url(full_image_path)}},
             ],
         },
+    ]
+
+
+def build_oneshot_multisource_messages(intent, image_paths: list) -> list[dict[str, Any]]:
+    """多源破案对照：把多个来源的整页图一次性喂入 + 直接问答（读完再想）。
+
+    期望 baseline 被多个矛盾数字迷惑，给出含糊或错误结论，反衬主动核查的价值。
+    """
+    text = (
+        f"【用户问题】{intent.prompt}\n\n"
+        "下面按顺序是各个信息来源的完整截图。请一次性通读全部来源后，"
+        "直接给出你的结论（一段简短中文）。"
+    )
+    content: list[dict[str, Any]] = [{"type": "text", "text": text}]
+    for p in image_paths:
+        content.append({"type": "image_url", "image_url": {"url": image_data_url(p)}})
+    return [
+        {"role": "system", "content": ONESHOT_SYSTEM_PROMPT},
+        {"role": "user", "content": content},
     ]
 
 
@@ -103,8 +150,44 @@ def _page_guide(inp: PolicyInput) -> str:
     )
 
 
+def _investigation_guide(inp: PolicyInput) -> str:
+    """多源破案专用引导：按"已访问来源数 + 未读来源 + 当前来源观察数"动态生成。
+
+    不假设线性末页（每个来源都有 [链接]），鼓励发现矛盾后主动 navigate 回看 + zoom 脚注。
+    """
+    obs = inp.observation
+    observe_types = ("see", "zoom_in", "zoom_out", "snapshot")
+    visited = {s.stage for s in inp.history}
+    visited.add(obs.stage)
+    n_visited = len(visited)
+    n_observed_cur = sum(
+        1 for s in inp.history if s.stage == obs.stage and s.action.type in observe_types
+    )
+    links = [e for e in obs.elements if e.kind == "link"]
+    unvisited = [e.to for e in links if e.to and e.to not in visited]
+    parts = [
+        f"【核查进度】已访问 {n_visited} 个信息源；当前来源={obs.stage}，本来源已观察 {n_observed_cur} 次。"
+    ]
+    if unvisited:
+        parts.append(
+            f"仍有未核查的来源：{'、'.join(unvisited)}。请先看清当前来源的关键数字与脚注，"
+            "再通过 [链接] 跳转核查未读来源，不要急于下结论。"
+        )
+    else:
+        parts.append(
+            "所有来源均已访问。若已发现数字矛盾，请主动 navigate 回看相关来源、"
+            "用 zoom_in 放大脚注/口径小字找出差异原因；若矛盾已解释清楚，用 eos 给出一致性结论。"
+        )
+    if n_observed_cur < 2:
+        parts.append("当前来源观察不足，请先 see 关键数字区、zoom_in 脚注小字确认口径/条件。")
+    return " ".join(parts)
+
+
 def build_messages(inp: PolicyInput) -> list[dict[str, Any]]:
     obs = inp.observation
+    is_investigation = inp.scene_id == "d4-investigation"
+    sys_prompt = INVESTIGATION_SYSTEM_PROMPT if is_investigation else SYSTEM_PROMPT
+    guide = _investigation_guide(inp) if is_investigation else _page_guide(inp)
     text = f"""【用户意图】{inp.intent.prompt}
 【进度】第 {inp.step_index + 1} 步 / 预算 {inp.max_steps} 步
 【已观察轨迹】
@@ -112,7 +195,7 @@ def build_messages(inp: PolicyInput) -> list[dict[str, Any]]:
 【当前视野】stage={obs.stage}，zoom={obs.zoom_level}×，rect=({obs.rect.x},{obs.rect.y},{obs.rect.w},{obs.rect.h})
 【当前可选语义元素】
 {_elements_block(inp)}
-{_page_guide(inp)}
+{guide}
 
 请结合下面两张图（第一张=全局缩略图含红框；第二张=当前视野局部高清）决定下一步动作。只输出一个 JSON。"""
 
@@ -122,7 +205,7 @@ def build_messages(inp: PolicyInput) -> list[dict[str, Any]]:
         {"type": "image_url", "image_url": {"url": image_data_url(obs.crop_path)}},
     ]
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": sys_prompt},
         {"role": "user", "content": user_content},
     ]
 

@@ -87,6 +87,23 @@ class SelfPageEnvironment(Environment):
             return t.rect
         return None
 
+    def _resolve_nav_target(self, action: Action) -> Optional[str]:
+        """解析 click/navigate 的目标 stage id：优先 NavTarget.to，其次 link 元素的 to。
+
+        用于多源破案的网状跳转/回看。D0 的 link.to 与 stage id 不一致时返回 None，
+        由 step 回退到“前进下一页”逻辑，保持 D0 行为不变。
+        """
+        t = action.target
+        if t is None:
+            return None
+        if t.kind == "nav":
+            return t.to or None
+        if t.kind == "element":
+            spec = self.stage_spec.element(t.element_id)
+            if spec is not None and spec.kind == "link" and spec.to:
+                return spec.to
+        return None
+
     # ── 闭环 ──
     def reset(self) -> EnvObservation:
         self._stage_idx = 0
@@ -134,7 +151,18 @@ class SelfPageEnvironment(Environment):
         elif a == "snapshot":
             self._rect = FULL_RECT
         elif a in ("click", "navigate"):
-            if self._stage_idx + 1 < len(self.role.stages):
+            target_stage = self._resolve_nav_target(action)
+            jumped = False
+            if target_stage is not None:
+                # 多源网状跳转：按 stage id 查找，支持前进与回退
+                for idx, st in enumerate(self.role.stages):
+                    if st.id == target_stage:
+                        self._stage_idx = idx
+                        self._rect = FULL_RECT
+                        jumped = True
+                        break
+            # 无显式目标 / 目标 stage 未找到 → 回退到前进下一页（兼容 D0）
+            if not jumped and self._stage_idx + 1 < len(self.role.stages):
                 self._stage_idx += 1
                 self._rect = FULL_RECT
         # a == "none": 连续思考，不改变视野
