@@ -8,6 +8,8 @@
 from __future__ import annotations
 
 import datetime
+import json
+import logging
 import time
 import uuid
 from pathlib import Path
@@ -16,6 +18,7 @@ from typing import AsyncGenerator, Optional
 from ap_engine.config import Settings, get_settings
 from ap_engine.environments import get_role, make_environment
 from ap_engine.models import PolicyInput, make_policy
+from ap_engine.models.prompts import build_investigation_final_messages
 from ap_engine.storage import save_trajectory
 from ap_protocol import (
     Action,
@@ -23,6 +26,7 @@ from ap_protocol import (
     ElementTarget,
     Intent,
     ModelInfo,
+    NavTarget,
     Rect,
     RegionTarget,
     Step,
@@ -36,6 +40,8 @@ from ap_protocol import (
     TrajectoryStartEvent,
     TrajectoryStats,
 )
+
+_logger = logging.getLogger(__name__)
 
 _ACTION_KEYS = [
     "see",
@@ -54,17 +60,283 @@ def _now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
-# 进入新页面后至少先观察这么多次（see/zoom/snapshot）才允许 click 离开本页：
-# 体现"主动感知 = 先看清再导航"，并为长程深链任务保证足够的逐页核查步数。
-_MIN_OBSERVE_BEFORE_NAV = 3
+_OBSERVE_TYPES = ("see", "zoom_in", "zoom_out", "snapshot")
 
 
-def _coerce_observe(obs, seen_ids: set[str]) -> Optional[Action]:
-    """把"过早 click"改写为对本页一个尚未查看区域的 see；本页区域均已看过则返回 None（放行 click）。"""
-    for e in obs.elements:
-        if e.kind != "link" and e.id not in seen_ids:
-            return Action(type="see", target=ElementTarget(element_id=e.id), label=f"SEE {e.label}")
+def _rect_overlap_ratio(a: Rect, b: Rect) -> float:
+    x1 = max(a.x, b.x)
+    y1 = max(a.y, b.y)
+    x2 = min(a.x + a.w, b.x + b.w)
+    y2 = min(a.y + a.h, b.y + b.h)
+    iw = max(x2 - x1, 0)
+    ih = max(y2 - y1, 0)
+    inter = iw * ih
+    denom = max(min(a.w * a.h, b.w * b.h), 1e-6)
+    return inter / denom
+
+
+def _stage_by_id(role_spec) -> dict[str, object]:
+    return {st.id: st for st in role_spec.stages}
+
+
+def _element_has_suffix(element_id: str, suffix: str) -> bool:
+    return element_id.endswith(f"-{suffix}") or suffix in element_id
+
+
+def _target_hits_element(action: Action, stage_spec, suffix: str) -> bool:
+    if action.type not in _OBSERVE_TYPES:
+        return False
+    target = action.target
+    if target is None:
+        return action.type == "snapshot" and suffix == "keyvalue"
+    if target.kind == "element":
+        return _element_has_suffix(target.element_id, suffix)
+    if target.kind != "region":
+        return False
+    return any(
+        _element_has_suffix(e.id, suffix) and _rect_overlap_ratio(target.rect, e.rect) >= 0.25
+        for e in stage_spec.elements
+    )
+
+
+def _observes_value(action: Action, stage_spec) -> bool:
+    if _target_hits_element(action, stage_spec, "keyvalue"):
+        return True
+    target = action.target
+    if action.type not in _OBSERVE_TYPES or target is None or target.kind != "element":
+        return False
+    eid = target.element_id
+    return not (
+        _element_has_suffix(eid, "footnote")
+        or _element_has_suffix(eid, "header")
+        or "-to-" in eid
+    )
+
+
+def _observes_footnote(action: Action, stage_spec) -> bool:
+    return _target_hits_element(action, stage_spec, "footnote")
+
+
+def _semantic_target(stage_spec, suffix: str) -> Optional[ElementTarget]:
+    for e in stage_spec.elements:
+        if _element_has_suffix(e.id, suffix):
+            return ElementTarget(element_id=e.id)
     return None
+
+
+def _nav_target_stage(action: Action, stage_spec) -> Optional[str]:
+    target = action.target
+    if target is None:
+        return None
+    if target.kind == "nav":
+        return target.to
+    if target.kind == "element":
+        spec = stage_spec.element(target.element_id)
+        if spec is not None and spec.kind == "link" and spec.to:
+            return spec.to
+    return None
+
+
+def _next_unverified_stage(ledger: dict, current_stage: str) -> Optional[str]:
+    for sid in ledger.get("unverified", []):
+        if sid != current_stage:
+            return sid
+    if ledger.get("unverified"):
+        return ledger["unverified"][0]
+    return None
+
+
+def _detect_source_cycle(history: list[Step], window: int = 6) -> bool:
+    if len(history) < window:
+        return False
+    stages = [s.stage for s in history[-window:]]
+    if len(set(stages)) != 2:
+        return False
+    return all(stages[i] == stages[i % 2] for i in range(window))
+
+
+def _target_summary(action: Action) -> str:
+    target = action.target
+    if target is None:
+        return ""
+    if target.kind == "element":
+        return target.element_id
+    if target.kind == "nav":
+        return target.to
+    if target.kind == "region":
+        r = target.rect
+        return f"region({r.x:.3f},{r.y:.3f},{r.w:.3f},{r.h:.3f})"
+    return ""
+
+
+def _investigation_ledger(history: list[Step], role_spec) -> dict:
+    """多源破案的证据账本：从历史核查记录算出每个来源的核查进度。
+
+    某来源已核查(verified) = 看过它的关键数字（任一非脚注语义区/region 细看）
+    且放大确认过它的脚注口径（对 -footnote 的观察）。判定只依赖 step 已记录的
+    stage + 元素 id 后缀（-keyvalue / -footnote 等），不改协议。返回：
+      {"sources": {sid: {title, seen_value, zoomed_footnote, verified}},
+       "order": [...], "unverified": [...], "all_verified": bool}
+    """
+    sources: dict[str, dict] = {}
+    order: list[str] = []
+    for st in role_spec.stages:
+        sources[st.id] = {
+            "title": st.title,
+            "seen_value": False,
+            "zoomed_footnote": False,
+            "verified": False,
+        }
+        order.append(st.id)
+    stages = _stage_by_id(role_spec)
+    for s in history:
+        src = sources.get(s.stage)
+        if src is None or s.action.type not in _OBSERVE_TYPES:
+            continue
+        stage_spec = stages.get(s.stage)
+        if stage_spec is None:
+            continue
+        if _observes_footnote(s.action, stage_spec):
+            src["zoomed_footnote"] = True
+        if _observes_value(s.action, stage_spec):
+            src["seen_value"] = True
+    for sid in order:
+        sources[sid]["verified"] = sources[sid]["seen_value"] and sources[sid]["zoomed_footnote"]
+    unverified = [sid for sid in order if not sources[sid]["verified"]]
+    return {
+        "sources": sources,
+        "order": order,
+        "unverified": unverified,
+        "all_verified": bool(order) and not unverified,
+    }
+
+
+def _guard_investigation_action(
+    action: Action,
+    thought: str,
+    obs,
+    role_spec,
+    ledger: dict,
+) -> tuple[Action, str, Optional[str]]:
+    """D4 行为防护栏：不替模型答题，只阻止明显破坏证据闭环的动作。"""
+    sources = ledger.get("sources", {})
+    cur = sources.get(obs.stage)
+    stages = _stage_by_id(role_spec)
+    stage_spec = stages.get(obs.stage)
+    if cur is None or stage_spec is None:
+        return action, thought, None
+
+    if not cur["verified"]:
+        if not cur["seen_value"] and not _observes_value(action, stage_spec):
+            target = _semantic_target(stage_spec, "keyvalue")
+            if target is not None:
+                guarded = Action(
+                    type="see",
+                    target=target,
+                    label="SEE: 核查当前来源关键数字",
+                )
+                return (
+                    guarded,
+                    "证据账本显示当前来源的关键数字尚未确认，先读取关键数字再跳转。",
+                    "force_current_value",
+                )
+        if cur["seen_value"] and not cur["zoomed_footnote"] and not _observes_footnote(
+            action, stage_spec
+        ):
+            target = _semantic_target(stage_spec, "footnote")
+            if target is not None:
+                guarded = Action(
+                    type="zoom_in",
+                    target=target,
+                    label="ZOOM: 放大脚注确认口径",
+                )
+                return (
+                    guarded,
+                    "关键数字已确认，但口径脚注尚未核查，先放大脚注找出差异原因。",
+                    "force_current_footnote",
+                )
+        return action, thought, None
+
+    if ledger.get("all_verified"):
+        return action, thought, None
+
+    next_sid = _next_unverified_stage(ledger, obs.stage)
+    target_sid = _nav_target_stage(action, stage_spec)
+    if target_sid and sources.get(target_sid, {}).get("verified") and next_sid:
+        guarded = Action(
+            type="navigate",
+            target=NavTarget(to=next_sid),
+            label="NAVIGATE: 前往未核查来源",
+        )
+        return (
+            guarded,
+            "目标来源已经核查完成，转向证据账本中仍未完成的来源。",
+            "redirect_verified_target",
+        )
+
+    if action.type in _OBSERVE_TYPES and next_sid and next_sid != obs.stage:
+        guarded = Action(
+            type="navigate",
+            target=NavTarget(to=next_sid),
+            label="NAVIGATE: 前往未核查来源",
+        )
+        return (
+            guarded,
+            "当前来源已经核查完成，继续前往未核查来源，避免重复观察。",
+            "leave_verified_source",
+        )
+    return action, thought, None
+
+
+async def _finalize_investigation(policy, intent, history: list[Step], ledger: dict, reason: str):
+    messages = build_investigation_final_messages(intent, history, ledger)
+    fallback = history[-1].thought if history else "证据已核查完成，给出一致性结论。"
+    tokens = None
+    try:
+        if hasattr(policy, "chat"):
+            text, tokens = await policy.chat(messages)
+        else:
+            text = fallback
+    except Exception as exc:  # noqa: BLE001
+        text = f"{fallback}（最终总结调用失败，按已观察证据收尾：{exc}）"
+    conclusion = text.strip() or fallback
+    return (
+        conclusion,
+        Action(type="eos", label=f"OUTPUT: {conclusion}", reason=reason),
+        tokens,
+    )
+
+
+def _finalize_reason(ledger: dict, history: list[Step], step_index: int, max_steps: int) -> Optional[str]:
+    if not history:
+        return None
+    if ledger.get("all_verified"):
+        if _detect_source_cycle(history):
+            return "cycle_finalized"
+        if step_index >= max_steps - 3:
+            return "budget_finalized"
+        return "all_verified"
+    return None
+
+
+def _log_d4_step(
+    traj_id: str,
+    step: Step,
+    ledger: Optional[dict],
+    guard_reason: Optional[str] = None,
+    termination_reason: Optional[str] = None,
+) -> None:
+    payload = {
+        "trajectory_id": traj_id,
+        "step": step.index,
+        "stage": step.stage,
+        "action": step.action.type,
+        "target": _target_summary(step.action),
+        "guard_reason": guard_reason,
+        "termination_reason": termination_reason,
+        "ledger": ledger,
+    }
+    _logger.info("d4_loop %s", json.dumps(payload, ensure_ascii=False))
 
 
 async def run_trajectory(
@@ -117,16 +389,45 @@ async def run_trajectory(
     prev_sig: Optional[str] = None
     repeat = 0
     reached_eos = False
+    termination_reason = "max_steps"
+    guard_events: list[str] = []
+    cycle_detected = False
     t0 = time.perf_counter()
     max_steps = settings.max_steps
-
-    # 软约束状态：当前页已观察次数与已看过的区域 id（保证"先看清再导航"）
-    cur_stage = obs.stage
-    stage_observe = 0
-    stage_seen_ids: set[str] = set()
-    _observe_types = ("see", "zoom_in", "zoom_out", "snapshot")
+    # 多源破案：每步计算证据账本并注入提示，作为唯一的行为引导（不改写动作/思考）
+    is_inv = scene == "d4-investigation"
 
     for i in range(max_steps):
+        # 多源破案：每步算证据账本，仅注入提示引导模型（不据此改写任何动作/思考）
+        ledger = _investigation_ledger(steps, role_spec) if is_inv else None
+        if is_inv and ledger is not None:
+            cycle_detected = cycle_detected or _detect_source_cycle(steps)
+            final_reason = _finalize_reason(ledger, steps, i, max_steps)
+            if final_reason:
+                s0 = time.perf_counter()
+                thought, action, final_tokens = await _finalize_investigation(
+                    policy, intent, steps, ledger, final_reason
+                )
+                dur_ms = round((time.perf_counter() - s0) * 1000, 1)
+                step = Step(
+                    index=i,
+                    stage=obs.stage,
+                    thought=thought,
+                    action=action,
+                    observation=obs.to_protocol(),
+                    timing=Timing(started_at=_now(), duration_ms=dur_ms),
+                )
+                steps.append(step)
+                counts[action.type] = counts.get(action.type, 0) + 1
+                if final_tokens:
+                    tokens.prompt += final_tokens.prompt
+                    tokens.completion += final_tokens.completion
+                    tokens.total += final_tokens.total
+                reached_eos = True
+                termination_reason = final_reason
+                _log_d4_step(traj_id, step, ledger, termination_reason=final_reason)
+                yield StepEvent(step=step)
+                break
         inp = PolicyInput(
             intent=intent,
             step_index=i,
@@ -134,31 +435,22 @@ async def run_trajectory(
             history=steps,
             observation=obs,
             scene_id=scene,
+            ledger=ledger,
         )
         s0 = time.perf_counter()
         decision = await policy.decide(inp)
         dur_ms = round((time.perf_counter() - s0) * 1000, 1)
 
         action = decision.action
-        thought = decision.thought
+        thought = decision.thought  # 始终用模型原话，循环不再盖写动作/思考
+        guard_reason = None
+        if is_inv and ledger is not None:
+            action, thought, guard_reason = _guard_investigation_action(
+                action, thought, obs, role_spec, ledger
+            )
+            if guard_reason:
+                guard_events.append(f"#{i}:{obs.stage}:{guard_reason}")
         sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
-        # 规整①：进入新页/来源后未充分观察就 click 跳走，改写为先 see 一个未看区域（先看清再跳）
-        # D0 要求 _MIN_OBSERVE_BEFORE_NAV 次；多源破案每个来源至少观察 2 次才允许 click 跳走，
-        # 防止在来源间空跳横跳（navigate 主动回看不拦截）
-        _min_obs = 2 if scene == "d4-investigation" else _MIN_OBSERVE_BEFORE_NAV
-        if action.type == "click" and stage_observe < _min_obs:
-            forced = _coerce_observe(obs, stage_seen_ids)
-            if forced is not None:
-                action = forced
-                thought = "先把本来源的关键数字与脚注看清楚，再跳转到下一来源继续核查。"
-                sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
-        # 规整②：与上一步完全相同的观察动作（原地打转）→ 换一个本页未看区域，推进核查
-        elif sig == prev_sig and action.type in _observe_types:
-            forced = _coerce_observe(obs, stage_seen_ids)
-            if forced is not None:
-                action = forced
-                thought = "换一个关键区域，继续核查本页其它要点。"
-                sig = f"{action.type}:{action.target.model_dump_json() if action.target else ''}"
 
         step = Step(
             index=i,
@@ -176,15 +468,14 @@ async def run_trajectory(
             tokens.total += decision.tokens.total
         if action.target is not None and getattr(action.target, "kind", None) == "element":
             seen_elements.add(action.target.element_id)
-        if action.type in _observe_types:
-            stage_observe += 1
-            if action.target is not None and getattr(action.target, "kind", None) == "element":
-                stage_seen_ids.add(action.target.element_id)
 
+        if is_inv:
+            _log_d4_step(traj_id, step, ledger, guard_reason=guard_reason)
         yield StepEvent(step=step)
 
         if action.type == "eos":
             reached_eos = True
+            termination_reason = "model_eos"
             break
 
         # 卡死保护：连续相同的非 none 动作累计达阈值才终止（给模型自我纠正空间）
@@ -194,17 +485,13 @@ async def run_trajectory(
                 # 反复纠结同一动作：D0 末页（无链接）或多源场景（已核查来源池）视为完成
                 if scene == "d4-investigation" or not any(e.kind == "link" for e in obs.elements):
                     reached_eos = True
+                    termination_reason = "repeat_guard"
                 break
         else:
             repeat = 0
         prev_sig = sig
 
         obs = env.step(action)
-        # 切换到新页面：重置本页观察计数
-        if obs.stage != cur_stage:
-            cur_stage = obs.stage
-            stage_observe = 0
-            stage_seen_ids = set()
 
     total_ms = round((time.perf_counter() - t0) * 1000, 1)
     total_elements = len(env.elements)
@@ -226,10 +513,21 @@ async def run_trajectory(
         if label.upper().startswith("OUTPUT:"):
             label = label.split(":", 1)[1].strip()
         final_output = label or last.thought
+    final_ledger = _investigation_ledger(steps, role_spec) if is_inv else None
     result = TrajectoryResult(
         conclusion=last.thought if last else None,
         output=final_output,
         stats=stats,
+        termination_reason=termination_reason,
+        diagnostics=(
+            {
+                "ledger": final_ledger,
+                "guard_events": guard_events,
+                "cycle_detected": cycle_detected,
+            }
+            if is_inv
+            else None
+        ),
     )
 
     traj.steps = steps

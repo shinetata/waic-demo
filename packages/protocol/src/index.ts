@@ -141,6 +141,29 @@ export interface TrajectoryResult {
   conclusion?: string;
   output?: string;
   stats: TrajectoryStats;
+  termination_reason?: string;
+  diagnostics?: TrajectoryDiagnostics;
+}
+
+export interface InvestigationSourceState {
+  title?: string;
+  seen_value?: boolean;
+  zoomed_footnote?: boolean;
+  verified?: boolean;
+}
+
+export interface InvestigationLedger {
+  sources?: Record<string, InvestigationSourceState>;
+  order?: string[];
+  unverified?: string[];
+  all_verified?: boolean;
+}
+
+export interface TrajectoryDiagnostics {
+  ledger?: InvestigationLedger;
+  guard_events?: string[];
+  cycle_detected?: boolean;
+  [key: string]: unknown;
 }
 
 export type TrajectoryStatus = "running" | "done" | "aborted" | "error";

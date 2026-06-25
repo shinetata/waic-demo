@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Any, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -157,6 +157,8 @@ class TrajectoryResult(BaseModel):
     conclusion: Optional[str] = None
     output: Optional[str] = None
     stats: TrajectoryStats
+    termination_reason: Optional[str] = None
+    diagnostics: Optional[dict[str, Any]] = None
 
 
 class Trajectory(BaseModel):

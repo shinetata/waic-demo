@@ -535,10 +535,10 @@ body {
   font-weight: 600;
 }
 
-/* 需要 zoom 才能看清的脚注 / 关键小字 */
+/* 需要 zoom 才能看清的脚注 / 关键小字（刻意做小：降分辨率一次性读入会糊掉，只有主动放大才看得清） */
 .footnote {
-  font-size: 10.5px;
-  line-height: 1.5;
+  font-size: 9px;
+  line-height: 1.45;
   color: var(--ink-mute);
   margin-top: 10px;
   padding: 7px 10px;

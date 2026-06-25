@@ -6,7 +6,16 @@ import json
 import re
 from typing import Any
 
-from ap_engine.models.base import PolicyInput, image_data_url, summarize_history
+from ap_engine.models.base import (
+    PolicyInput,
+    image_data_url,
+    image_data_url_scaled,
+    summarize_history,
+)
+
+# 现有做法（多源 baseline）一次性读入整页时的固定分辨率宽度：
+# 刻意压低，使脚注/口径等密集小字糊掉、看不清，从而被表面大数字误导（调小=更看不清）。
+BASELINE_ONESHOT_MAX_WIDTH = 720
 from ap_protocol import (
     Action,
     ElementTarget,
@@ -67,6 +76,11 @@ target 三选一：
 
 核查策略（这是多源矛盾任务）：每个来源都要先用 see 看清关键数字，并用 zoom_in 放大脚注/口径说明小字确认其口径或测试条件。当发现不同来源的数字矛盾时，不要轻易判定谁对谁错——主动 navigate 回看相关来源，用 zoom_in 放大它的脚注小字，找出数字差异背后的真实口径（如合并/母公司口径、含/不含关联交易）或测试条件（如工况、温度、负载）。只有把每个来源的数字与口径都核对清楚、矛盾得到合理解释后，才用 eos 给出一致性结论。严禁只读一两个来源就下结论，也严禁对所有来源走马观花却不 zoom 脚注。
 
+依据证据账本行动：每一步的用户消息会给出一份【证据账本】，逐个来源标注"关键数字"与"口径脚注"是否已看过（✓/✗）。请严格据此决定下一步：
+- 只前往仍标记为未核查（✗）的来源；某来源的关键数字与脚注都已 ✓ 后，不要再回头重复查看它；
+- 不要在已核查（✓✓）的来源之间来回跳转；
+- 当账本显示所有来源均已核查时，立即用 eos 给出综合一致性结论，不要再做任何跳转或重复观察。
+
 输出要求：每一步只输出一个 JSON 对象，不要任何多余文字、不要 markdown：
 {"thought":"你此刻的判断/意图(一句话中文)","action":{"type":"see","target":{...},"label":"简短动作标签"}}
 
@@ -103,10 +117,52 @@ def build_oneshot_multisource_messages(intent, image_paths: list) -> list[dict[s
     )
     content: list[dict[str, Any]] = [{"type": "text", "text": text}]
     for p in image_paths:
-        content.append({"type": "image_url", "image_url": {"url": image_data_url(p)}})
+        # 降分辨率读入：大数字仍可读、脚注小字糊掉（一次性固定预算的真实写照）
+        url = image_data_url_scaled(p, BASELINE_ONESHOT_MAX_WIDTH)
+        content.append({"type": "image_url", "image_url": {"url": url}})
     return [
         {"role": "system", "content": ONESHOT_SYSTEM_PROMPT},
         {"role": "user", "content": content},
+    ]
+
+
+def build_investigation_final_messages(intent, history, ledger: dict[str, Any]) -> list[dict[str, Any]]:
+    """多源破案最终收尾：只基于已观察轨迹和证据账本生成可展示结论。"""
+    rows = []
+    sources = ledger.get("sources", {})
+    for sid in ledger.get("order", []):
+        s = sources.get(sid, {})
+        rows.append(
+            f"- {s.get('title', sid)}：关键数字"
+            f"{'已确认' if s.get('seen_value') else '未确认'}，口径脚注"
+            f"{'已确认' if s.get('zoomed_footnote') else '未确认'}"
+        )
+    trace = []
+    for st in history:
+        label = st.action.label or st.action.type
+        trace.append(f"#{st.index} {st.stage} [{st.action.type}] {label}：{st.thought}")
+    text = f"""【用户问题】{intent.prompt}
+
+【证据账本】
+{chr(10).join(rows)}
+
+【已观察轨迹】
+{chr(10).join(trace[-18:])}
+
+请只基于上面的已观察事实，输出一段中文最终结论。要求：
+1. 先给出真实口径下的结论；
+2. 再用一句话解释不同来源数字为什么看似冲突；
+3. 不要编造轨迹中没有观察到的事实；
+4. 不要输出 JSON，不要 markdown。"""
+    return [
+        {
+            "role": "system",
+            "content": (
+                "你是多源信息核查任务的最终收尾器。你的职责是把已经观察到的证据"
+                "压缩成简洁、可信、适合现场展示的一致性结论。"
+            ),
+        },
+        {"role": "user", "content": text},
     ]
 
 
@@ -151,35 +207,59 @@ def _page_guide(inp: PolicyInput) -> str:
 
 
 def _investigation_guide(inp: PolicyInput) -> str:
-    """多源破案专用引导：按"已访问来源数 + 未读来源 + 当前来源观察数"动态生成。
+    """多源破案专用引导：按证据账本（每来源是否已看数字 + 已放大脚注口径）动态生成。
 
-    不假设线性末页（每个来源都有 [链接]），鼓励发现矛盾后主动 navigate 回看 + zoom 脚注。
+    账本由 Agent Loop 注入（inp.ledger）。每来源核查完即命令式要求 eos，杜绝在已读来源间折回；
+    账本缺失时退回基于"已访问来源"的简化引导。
     """
     obs = inp.observation
-    observe_types = ("see", "zoom_in", "zoom_out", "snapshot")
-    visited = {s.stage for s in inp.history}
-    visited.add(obs.stage)
-    n_visited = len(visited)
-    n_observed_cur = sum(
-        1 for s in inp.history if s.stage == obs.stage and s.action.type in observe_types
-    )
-    links = [e for e in obs.elements if e.kind == "link"]
-    unvisited = [e.to for e in links if e.to and e.to not in visited]
-    parts = [
-        f"【核查进度】已访问 {n_visited} 个信息源；当前来源={obs.stage}，本来源已观察 {n_observed_cur} 次。"
-    ]
-    if unvisited:
-        parts.append(
-            f"仍有未核查的来源：{'、'.join(unvisited)}。请先看清当前来源的关键数字与脚注，"
-            "再通过 [链接] 跳转核查未读来源，不要急于下结论。"
+    ledger = getattr(inp, "ledger", None)
+    if not ledger:
+        visited = {s.stage for s in inp.history}
+        visited.add(obs.stage)
+        unread = [e.to for e in obs.elements if e.kind == "link" and e.to and e.to not in visited]
+        if unread:
+            return (
+                f"【核查进度】当前来源={obs.stage}。仍有未核查来源：{'、'.join(unread)}。"
+                "先看清当前来源的关键数字与脚注，再跳转核查未读来源。"
+            )
+        return "【核查进度】所有来源已访问。若矛盾已解释清楚，请用 eos 给出一致性结论。"
+
+    sources = ledger["sources"]
+    rows = []
+    for sid in ledger["order"]:
+        s = sources[sid]
+        cur = "（当前）" if sid == obs.stage else ""
+        rows.append(
+            f"{s['title']}{cur}：关键数字{'✓' if s['seen_value'] else '✗'} "
+            f"口径脚注{'✓' if s['zoomed_footnote'] else '✗'}"
         )
-    else:
+    parts = ["【证据账本】" + "；".join(rows) + "。"]
+
+    if ledger["all_verified"]:
         parts.append(
-            "所有来源均已访问。若已发现数字矛盾，请主动 navigate 回看相关来源、"
-            "用 zoom_in 放大脚注/口径小字找出差异原因；若矛盾已解释清楚，用 eos 给出一致性结论。"
+            "三个来源的关键数字与口径脚注均已核对清楚。不要再来回跳转或重复查看，"
+            "请立即用 eos 综合三个来源给出一致性结论。"
         )
-    if n_observed_cur < 2:
-        parts.append("当前来源观察不足，请先 see 关键数字区、zoom_in 脚注小字确认口径/条件。")
+        return " ".join(parts)
+
+    cur_src = sources.get(obs.stage)
+    if cur_src is not None and not cur_src["verified"]:
+        need = []
+        if not cur_src["seen_value"]:
+            need.append("先 see 它的关键数字")
+        if not cur_src["zoomed_footnote"]:
+            need.append("用 zoom_in 放大它的脚注确认口径/测试条件")
+        if need:
+            parts.append("当前来源尚未核查完：请" + "、".join(need) + "。")
+
+    unver_titles = [sources[sid]["title"] for sid in ledger["unverified"] if sid != obs.stage]
+    if unver_titles:
+        parts.append(
+            "仍未核查清楚的来源：" + "、".join(unver_titles) + "。"
+            "看清当前来源后，请前往这些来源核查（用 [链接] click 或 navigate），"
+            "不要在已核查的来源之间空跳。"
+        )
     return " ".join(parts)
 
 

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import base64
+import io
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +25,8 @@ class PolicyInput:
     history: list[Step]
     observation: EnvObservation
     scene_id: str = ""
+    # 多源破案的证据账本（由 Agent Loop 计算后注入，供引导渲染每来源核查进度）；其它场景为 None
+    ledger: Optional[dict] = None
 
 
 @dataclass
@@ -37,6 +40,23 @@ class PolicyDecision:
 def image_data_url(path: str | Path) -> str:
     raw = Path(path).read_bytes()
     return "data:image/jpeg;base64," + base64.b64encode(raw).decode("ascii")
+
+
+def image_data_url_scaled(path: str | Path, max_width: int = 720) -> str:
+    """把整页图等比缩小到不超过 max_width 宽后转 JPEG data URL。
+
+    供"现有做法"一次性整图问答用：忠实表达"固定预算单次读入整页"——醒目大数字仍可读，
+    但密集小字（脚注/口径/测试条件）会糊掉，从而被表面数字误导，反衬主动放大核查的价值。
+    """
+    from PIL import Image
+
+    img = Image.open(path).convert("RGB")
+    if img.width > max_width:
+        new_h = max(round(img.height * max_width / img.width), 1)
+        img = img.resize((max_width, new_h), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=82)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def summarize_history(history: list[Step], limit: int = 8) -> str:

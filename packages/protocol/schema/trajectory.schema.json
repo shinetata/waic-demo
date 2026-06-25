@@ -176,7 +176,13 @@
       "properties": {
         "conclusion": { "type": "string", "description": "最终结论（done 步思考）" },
         "output": { "type": "string", "description": "最终输出动作标签，如 OUTPUT: ADD POSITION" },
-        "stats": { "$ref": "#/$defs/TrajectoryStats" }
+        "stats": { "$ref": "#/$defs/TrajectoryStats" },
+        "termination_reason": { "type": "string", "description": "轨迹终止原因，如 model_eos / all_verified / max_steps" },
+        "diagnostics": {
+          "type": "object",
+          "description": "调试诊断信息，如 D4 证据账本、guard 事件和循环检测结果",
+          "additionalProperties": true
+        }
       },
       "required": ["stats"],
       "additionalProperties": false
