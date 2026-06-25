@@ -1,0 +1,132 @@
+{
+  "stage": "src-annual-notes",
+  "image": "src-annual-notes.png",
+  "width": 1120,
+  "height": 1381,
+  "elements": [
+    {
+      "id": "notes-toolbar",
+      "label": "PDF 工具栏 · 年报附注页",
+      "kind": "region",
+      "hint": "来源身份：年报附注截图",
+      "rect": {
+        "x": 0.0982,
+        "y": 0.0344,
+        "w": 0.8036,
+        "h": 0.0246
+      }
+    },
+    {
+      "id": "notes-header",
+      "label": "标题 · 财报附注",
+      "kind": "region",
+      "hint": "附注七/八说明",
+      "rect": {
+        "x": 0.1366,
+        "y": 0.0916,
+        "w": 0.7268,
+        "h": 0.071
+      }
+    },
+    {
+      "id": "notes-consolidated",
+      "label": "附注七 · 合并范围表",
+      "kind": "region",
+      "hint": "关键表格：10.2+4.8=15.0",
+      "rect": {
+        "x": 0.1366,
+        "y": 0.177,
+        "w": 0.7268,
+        "h": 0.199
+      }
+    },
+    {
+      "id": "notes-footnote",
+      "label": "脚注 · 审计合并口径 15.0 亿",
+      "kind": "region",
+      "hint": "关键小字：真实营收优先采用审计合并口径15.0亿，放大看清",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.3347,
+        "w": 0.6929,
+        "h": 0.029
+      }
+    },
+    {
+      "id": "notes-related",
+      "label": "附注八 · 关联交易与分部收入",
+      "kind": "region",
+      "hint": "解释4.8亿与12.6亿分部收入",
+      "rect": {
+        "x": 0.1366,
+        "y": 0.3876,
+        "w": 0.7268,
+        "h": 0.1818
+      }
+    },
+    {
+      "id": "notes-distractor",
+      "label": "误导点 · 新闻与数据库混淆",
+      "kind": "region",
+      "hint": "排除干扰：12.6为分部收入/14.7为旧快报",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.4999,
+        "w": 0.6929,
+        "h": 0.0471
+      }
+    },
+    {
+      "id": "notes-to-annual",
+      "label": "回看 · 年报PDF首页",
+      "kind": "link",
+      "hint": "回看10.2亿母公司口径",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.6266,
+        "w": 0.6929,
+        "h": 0.0572
+      },
+      "to": "src-annual-pdf"
+    },
+    {
+      "id": "notes-to-research",
+      "label": "跳转 · 查看券商研报",
+      "kind": "link",
+      "hint": "核查研报是否复核15.0亿",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.6997,
+        "w": 0.6929,
+        "h": 0.0572
+      },
+      "to": "src-research"
+    },
+    {
+      "id": "notes-to-press",
+      "label": "跳转 · 查看新闻报道",
+      "kind": "link",
+      "hint": "核查12.6亿是否误读分部收入",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.7729,
+        "w": 0.6929,
+        "h": 0.0572
+      },
+      "to": "src-press"
+    },
+    {
+      "id": "notes-to-database",
+      "label": "跳转 · 查看数据库摘要",
+      "kind": "link",
+      "hint": "核查14.7/15.0版本差异",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.846,
+        "w": 0.6929,
+        "h": 0.0572
+      },
+      "to": "src-database"
+    }
+  ]
+}

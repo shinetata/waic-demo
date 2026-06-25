@@ -149,6 +149,10 @@ export interface InvestigationSourceState {
   title?: string;
   seen_value?: boolean;
   zoomed_footnote?: boolean;
+  checked_version_unit?: boolean;
+  checked_credibility?: boolean;
+  required_checks?: string[];
+  required_labels?: string[];
   verified?: boolean;
 }
 

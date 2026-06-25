@@ -54,7 +54,7 @@ target 二选一：
 ONESHOT_SYSTEM_PROMPT = """你是一个传统视觉问答模型。你会一次性看到整张页面截图，然后基于这一次性读入的全部内容，直接给出对用户问题的回答。你不能逐步放大、不能翻页、不能主动选择看哪里——只能依据这张整页图所能看清的信息作答。请用一段简短中文直接给出结论。"""
 
 
-INVESTIGATION_SYSTEM_PROMPT = """你是一个"多源信息核查"视觉智能体。面对多个说法不一的信息源，你不会一次性读完所有材料就下结论，而是逐个来源主动观察、提取关键数字与口径，发现矛盾后主动回看、放大脚注小字找出差异原因，最终给出一致性解释。
+INVESTIGATION_SYSTEM_PROMPT = """你是一个"多源信息核查"视觉智能体。面对多个说法不一的信息源，你不会一次性读完所有材料就下结论，而是逐个来源主动观察、提取关键数字与口径，发现矛盾后主动回看、放大脚注/附注小字找出差异原因，最终给出一致性解释。
 
 每一步你会收到两张图：
 1) 全局缩略图：当前来源整页的低清概览，红框标出你"当前视野"的位置；
@@ -74,10 +74,10 @@ target 三选一：
 - {"kind":"region","rect":{"x":0~1,"y":0~1,"w":0~1,"h":0~1}}：归一化坐标，用于清单未覆盖的细节
 - {"kind":"nav","to":"<来源 stage id>"}：仅用于 navigate 回看指定来源（如 src-annual）
 
-核查策略（这是多源矛盾任务）：每个来源都要先用 see 看清关键数字，并用 zoom_in 放大脚注/口径说明小字确认其口径或测试条件。当发现不同来源的数字矛盾时，不要轻易判定谁对谁错——主动 navigate 回看相关来源，用 zoom_in 放大它的脚注小字，找出数字差异背后的真实口径（如合并/母公司口径、含/不含关联交易）或测试条件（如工况、温度、负载）。只有把每个来源的数字与口径都核对清楚、矛盾得到合理解释后，才用 eos 给出一致性结论。严禁只读一两个来源就下结论，也严禁对所有来源走马观花却不 zoom 脚注。
+核查策略（这是多源矛盾任务）：每个来源都要先用 see 看清关键数字，并用 zoom_in 放大脚注/口径说明小字确认其口径或测试条件。若来源包含版本/单位、误读提示、分部收入、旧快报等干扰项，也必须核查清楚后才能跳走。当发现不同来源的数字矛盾时，不要轻易判定谁对谁错——主动 navigate 回看相关来源，用 zoom_in 放大它的脚注、附注、版本说明或单位说明，找出数字差异背后的真实口径（如合并/母公司口径、含/不含关联交易、分部收入、快报/审计年报修订版、百万元/亿元换算）或测试条件。只有把每个来源的数字、口径和必要干扰项都核对清楚、矛盾得到合理解释后，才用 eos 给出一致性结论。严禁只读一两个来源就下结论，也严禁对所有来源走马观花却不 zoom 关键小字。
 
-依据证据账本行动：每一步的用户消息会给出一份【证据账本】，逐个来源标注"关键数字"与"口径脚注"是否已看过（✓/✗）。请严格据此决定下一步：
-- 只前往仍标记为未核查（✗）的来源；某来源的关键数字与脚注都已 ✓ 后，不要再回头重复查看它；
+依据证据账本行动：每一步的用户消息会给出一份【证据账本】，逐个来源标注"关键数字"、"口径"、"版本/单位"、"可信度"等必要检查项是否已看过（✓/✗；没有列出的检查项说明该来源不需要）。请严格据此决定下一步：
+- 只前往仍标记为未核查（✗）的来源；某来源所有必要检查项都已 ✓ 后，不要再回头重复查看它；
 - 不要在已核查（✓✓）的来源之间来回跳转；
 - 当账本显示所有来源均已核查时，立即用 eos 给出综合一致性结论，不要再做任何跳转或重复观察。
 
@@ -132,11 +132,19 @@ def build_investigation_final_messages(intent, history, ledger: dict[str, Any]) 
     sources = ledger.get("sources", {})
     for sid in ledger.get("order", []):
         s = sources.get(sid, {})
-        rows.append(
-            f"- {s.get('title', sid)}：关键数字"
-            f"{'已确认' if s.get('seen_value') else '未确认'}，口径脚注"
-            f"{'已确认' if s.get('zoomed_footnote') else '未确认'}"
+        checks = [
+            ("关键数字", s.get("seen_value")),
+            ("口径", s.get("zoomed_footnote")),
+            ("版本/单位", s.get("checked_version_unit")),
+            ("可信度", s.get("checked_credibility")),
+        ]
+        required = set(s.get("required_labels") or [])
+        status = "，".join(
+            f"{label}{'已确认' if ok else '未确认'}"
+            for label, ok in checks
+            if not required or label in required
         )
+        rows.append(f"- {s.get('title', sid)}：{status}")
     trace = []
     for st in history:
         label = st.action.label or st.action.type
@@ -207,7 +215,7 @@ def _page_guide(inp: PolicyInput) -> str:
 
 
 def _investigation_guide(inp: PolicyInput) -> str:
-    """多源破案专用引导：按证据账本（每来源是否已看数字 + 已放大脚注口径）动态生成。
+    """多源破案专用引导：按证据账本动态生成每来源的必要检查项。
 
     账本由 Agent Loop 注入（inp.ledger）。每来源核查完即命令式要求 eos，杜绝在已读来源间折回；
     账本缺失时退回基于"已访问来源"的简化引导。
@@ -230,26 +238,40 @@ def _investigation_guide(inp: PolicyInput) -> str:
     for sid in ledger["order"]:
         s = sources[sid]
         cur = "（当前）" if sid == obs.stage else ""
-        rows.append(
-            f"{s['title']}{cur}：关键数字{'✓' if s['seen_value'] else '✗'} "
-            f"口径脚注{'✓' if s['zoomed_footnote'] else '✗'}"
+        checks = [
+            ("关键数字", s.get("seen_value")),
+            ("口径", s.get("zoomed_footnote")),
+            ("版本/单位", s.get("checked_version_unit")),
+            ("可信度", s.get("checked_credibility")),
+        ]
+        required = set(s.get("required_labels") or [])
+        check_text = " ".join(
+            f"{label}{'✓' if ok else '✗'}"
+            for label, ok in checks
+            if not required or label in required
         )
+        rows.append(f"{s['title']}{cur}：{check_text}")
     parts = ["【证据账本】" + "；".join(rows) + "。"]
 
     if ledger["all_verified"]:
         parts.append(
-            "三个来源的关键数字与口径脚注均已核对清楚。不要再来回跳转或重复查看，"
-            "请立即用 eos 综合三个来源给出一致性结论。"
+            "所有来源的必要检查项均已核对清楚。不要再来回跳转或重复查看，"
+            "请立即用 eos 综合各来源给出一致性结论。"
         )
         return " ".join(parts)
 
     cur_src = sources.get(obs.stage)
     if cur_src is not None and not cur_src["verified"]:
         need = []
+        required_labels = cur_src.get("required_labels") or []
         if not cur_src["seen_value"]:
             need.append("先 see 它的关键数字")
-        if not cur_src["zoomed_footnote"]:
-            need.append("用 zoom_in 放大它的脚注确认口径/测试条件")
+        if "口径" in required_labels and not cur_src["zoomed_footnote"]:
+            need.append("用 zoom_in 放大它的脚注/附注确认口径或测试条件")
+        if "版本/单位" in required_labels and not cur_src.get("checked_version_unit"):
+            need.append("核对版本日期或单位换算")
+        if "可信度" in required_labels and not cur_src.get("checked_credibility"):
+            need.append("核查误读提示或来源可信度")
         if need:
             parts.append("当前来源尚未核查完：请" + "、".join(need) + "。")
 

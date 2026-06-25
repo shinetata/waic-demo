@@ -1,0 +1,132 @@
+{
+  "stage": "src-annual-pdf",
+  "image": "src-annual-pdf.png",
+  "width": 1120,
+  "height": 1337,
+  "elements": [
+    {
+      "id": "annpdf-toolbar",
+      "label": "PDF 工具栏 · 年报第18页",
+      "kind": "region",
+      "hint": "来源身份：公司年报PDF截图",
+      "rect": {
+        "x": 0.0982,
+        "y": 0.0355,
+        "w": 0.8036,
+        "h": 0.0254
+      }
+    },
+    {
+      "id": "annpdf-header",
+      "label": "标题 · 锐芯科技 2025 年报摘要",
+      "kind": "region",
+      "hint": "法定披露文件头部",
+      "rect": {
+        "x": 0.1366,
+        "y": 0.0946,
+        "w": 0.7268,
+        "h": 0.0733
+      }
+    },
+    {
+      "id": "annpdf-keyvalue",
+      "label": "母公司收入 10.2 亿",
+      "kind": "region",
+      "hint": "关键数字：母公司主营口径，放大确认",
+      "rect": {
+        "x": 0.1366,
+        "y": 0.1829,
+        "w": 0.7268,
+        "h": 0.1073
+      }
+    },
+    {
+      "id": "annpdf-table",
+      "label": "主要会计数据表",
+      "kind": "region",
+      "hint": "母公司口径摘要表",
+      "rect": {
+        "x": 0.1366,
+        "y": 0.3037,
+        "w": 0.7268,
+        "h": 0.2056
+      }
+    },
+    {
+      "id": "annpdf-footnote",
+      "label": "脚注 · 母公司/合并口径说明",
+      "kind": "region",
+      "hint": "关键小字：10.2为母公司口径/合并口径15.0亿，放大看清",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.4665,
+        "w": 0.6929,
+        "h": 0.03
+      }
+    },
+    {
+      "id": "annpdf-trap",
+      "label": "误读提示 · 大号数字不是最终答案",
+      "kind": "region",
+      "hint": "干扰说明：只看大数字会误判",
+      "rect": {
+        "x": 0.1366,
+        "y": 0.5212,
+        "w": 0.7268,
+        "h": 0.034
+      }
+    },
+    {
+      "id": "annpdf-to-notes",
+      "label": "跳转 · 财报附注",
+      "kind": "link",
+      "hint": "主动查看合并范围与关联交易附注",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.6143,
+        "w": 0.6929,
+        "h": 0.0591
+      },
+      "to": "src-annual-notes"
+    },
+    {
+      "id": "annpdf-to-research",
+      "label": "跳转 · 查看券商研报",
+      "kind": "link",
+      "hint": "主动核查研报是否采用合并口径",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.6899,
+        "w": 0.6929,
+        "h": 0.0591
+      },
+      "to": "src-research"
+    },
+    {
+      "id": "annpdf-to-press",
+      "label": "跳转 · 查看新闻报道",
+      "kind": "link",
+      "hint": "主动核查媒体12.6亿是否可靠",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.7654,
+        "w": 0.6929,
+        "h": 0.0591
+      },
+      "to": "src-press"
+    },
+    {
+      "id": "annpdf-to-database",
+      "label": "跳转 · 查看数据库摘要",
+      "kind": "link",
+      "hint": "主动核查数据库修订版与单位",
+      "rect": {
+        "x": 0.1536,
+        "y": 0.8409,
+        "w": 0.6929,
+        "h": 0.0591
+      },
+      "to": "src-database"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1120, initial-scale=1" />
+    <title>WindScope · 锐芯科技财务摘要</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="detail">
+        <div class="crumb">多源核查 › <b>证据来源 E · 第三方数据库</b></div>
+        <span class="detail-tag">金融数据库 · 自动抓取</span>
+        <h1 class="detail-title" id="db-header">WindScope 财务摘要：锐芯科技 2025 年收入数据</h1>
+        <div class="detail-meta">
+          <span>数据源：交易所公告 + 年报 OCR</span><span>更新时间：2026-04-01 08:20</span><span>状态：含修订记录</span>
+        </div>
+
+        <section class="database-shell" id="db-terminal">
+          <div class="audit-strip" id="db-keyvalue">
+            <div class="audit-item">
+              <div class="lbl">快报营收</div>
+              <div class="val">14.7 亿</div>
+            </div>
+            <div class="audit-item">
+              <div class="lbl">年报修订</div>
+              <div class="val">15.0 亿</div>
+            </div>
+            <div class="audit-item">
+              <div class="lbl">母公司口径</div>
+              <div class="val">10.2 亿</div>
+            </div>
+            <div class="audit-item">
+              <div class="lbl">数据置信</div>
+              <div class="val">A-</div>
+            </div>
+          </div>
+
+          <table class="tbl" id="db-version-table">
+            <thead>
+              <tr><th>字段</th><th class="num">数值</th><th>单位</th><th>来源页</th><th>版本</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>营业收入_快报</td><td class="num">1470.0</td><td>百万元</td><td>业绩快报 P2</td><td>2026-02-18 初版</td>
+              </tr>
+              <tr>
+                <td>营业收入_年报</td><td class="num"><b>1500.0</b></td><td>百万元</td><td>年报 P139 附注七</td><td><b>2026-03-28 审计版</b></td>
+              </tr>
+              <tr>
+                <td>母公司主营收入</td><td class="num">1020.0</td><td>百万元</td><td>年报 P18</td><td>2026-03-28 审计版</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="footnote" id="db-version-note">
+            数据库备注：旧快报字段 1470.0 百万元对应 14.7 亿元，已被 2026-03-28 审计年报修订为 1500.0 百万元；
+            回答“2025 年真实营收”应采用<b>年报审计版合并口径 15.0 亿元</b>。本表单位为百万元，前端摘要自动换算为亿元。
+          </div>
+        </section>
+
+        <section class="warning-card" id="db-unit-trap">
+          容易误读点：一次性读入时，14.7 / 15.0 / 1500.0 同屏出现，且单位从“百万元”换算到“亿元”，很容易把旧快报或单位字段当成最终答案。
+        </section>
+
+        <section class="panel">
+          <h3>相关来源 <span class="sub">回看核对</span></h3>
+          <a class="next-link" id="db-to-annual">
+            <span>回看年报 PDF · 母公司 10.2 亿<small>确认大号数字为什么不是最终答案</small></span>
+            <span class="arrow">›</span>
+          </a>
+          <a class="next-link" id="db-to-notes">
+            <span>跳转财报附注 · 审计版合并口径<small>确认修订版 15.0 亿的来源</small></span>
+            <span class="arrow">›</span>
+          </a>
+          <a class="next-link" id="db-to-research">
+            <span>查看券商研报 · 机构是否采纳修订版<small>研报与数据库年报字段是否一致？</small></span>
+            <span class="arrow">›</span>
+          </a>
+          <a class="next-link" id="db-to-press">
+            <span>查看新闻报道 · 排除 12.6 亿<small>媒体有没有误把分部收入当总营收？</small></span>
+            <span class="arrow">›</span>
+          </a>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

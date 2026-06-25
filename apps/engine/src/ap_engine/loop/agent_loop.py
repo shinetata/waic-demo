@@ -62,6 +62,45 @@ def _now() -> str:
 
 _OBSERVE_TYPES = ("see", "zoom_in", "zoom_out", "snapshot")
 
+_CHECK_DEFS = {
+    "value": {
+        "label": "关键数字",
+        "state_key": "seen_value",
+        "suffixes": ("keyvalue", "consolidated"),
+        "action": "see",
+        "guard_label": "SEE: 核查当前来源关键数字",
+        "guard_thought": "证据账本显示当前来源的关键数字尚未确认，先读取关键数字再跳转。",
+        "guard_reason": "force_current_value",
+    },
+    "context": {
+        "label": "口径",
+        "state_key": "zoomed_footnote",
+        "suffixes": ("footnote", "consolidated", "related"),
+        "action": "zoom_in",
+        "guard_label": "ZOOM: 放大口径说明",
+        "guard_thought": "关键数字已确认，但口径说明尚未核查，先放大脚注或附注找出差异原因。",
+        "guard_reason": "force_current_context",
+    },
+    "version": {
+        "label": "版本/单位",
+        "state_key": "checked_version_unit",
+        "suffixes": ("version", "unit"),
+        "action": "zoom_in",
+        "guard_label": "ZOOM: 核对版本与单位",
+        "guard_thought": "口径已确认，但版本或单位仍可能误导，先放大版本/单位说明。",
+        "guard_reason": "force_current_version_unit",
+    },
+    "credibility": {
+        "label": "可信度",
+        "state_key": "checked_credibility",
+        "suffixes": ("trap", "distractor", "wrong-sum"),
+        "action": "see",
+        "guard_label": "SEE: 排除来源误读",
+        "guard_thought": "该来源包含误读或可信度风险，先核查干扰说明再跳转。",
+        "guard_reason": "force_current_credibility",
+    },
+}
+
 
 def _rect_overlap_ratio(a: Rect, b: Rect) -> float:
     x1 = max(a.x, b.x)
@@ -99,6 +138,10 @@ def _target_hits_element(action: Action, stage_spec, suffix: str) -> bool:
     )
 
 
+def _target_hits_any(action: Action, stage_spec, suffixes: tuple[str, ...]) -> bool:
+    return any(_target_hits_element(action, stage_spec, suffix) for suffix in suffixes)
+
+
 def _observes_value(action: Action, stage_spec) -> bool:
     if _target_hits_element(action, stage_spec, "keyvalue"):
         return True
@@ -121,6 +164,30 @@ def _semantic_target(stage_spec, suffix: str) -> Optional[ElementTarget]:
     for e in stage_spec.elements:
         if _element_has_suffix(e.id, suffix):
             return ElementTarget(element_id=e.id)
+    return None
+
+
+def _semantic_target_any(stage_spec, suffixes: tuple[str, ...]) -> Optional[ElementTarget]:
+    for suffix in suffixes:
+        target = _semantic_target(stage_spec, suffix)
+        if target is not None:
+            return target
+    return None
+
+
+def _required_checks(stage_spec) -> list[str]:
+    checks = ["value"]
+    for check in ("context", "version", "credibility"):
+        if _semantic_target_any(stage_spec, _CHECK_DEFS[check]["suffixes"]):
+            checks.append(check)
+    return checks
+
+
+def _next_missing_check(src: dict) -> Optional[str]:
+    for check in src.get("required_checks", []):
+        key = _CHECK_DEFS[check]["state_key"]
+        if not src.get(key):
+            return check
     return None
 
 
@@ -172,19 +239,26 @@ def _target_summary(action: Action) -> str:
 def _investigation_ledger(history: list[Step], role_spec) -> dict:
     """多源破案的证据账本：从历史核查记录算出每个来源的核查进度。
 
-    某来源已核查(verified) = 看过它的关键数字（任一非脚注语义区/region 细看）
-    且放大确认过它的脚注口径（对 -footnote 的观察）。判定只依赖 step 已记录的
-    stage + 元素 id 后缀（-keyvalue / -footnote 等），不改协议。返回：
-      {"sources": {sid: {title, seen_value, zoomed_footnote, verified}},
+    某来源已核查(verified) = 完成该页实际存在的检查项。基础项为关键数字；
+    若页面含脚注/附注、版本/单位、误读提示等元素，则相应增加口径、版本/单位、
+    可信度检查。保留 seen_value / zoomed_footnote 旧字段以兼容现有前端和 product 案例。
+    返回：
+      {"sources": {sid: {title, seen_value, zoomed_footnote, checked_version_unit,
+                         checked_credibility, required_checks, verified}},
        "order": [...], "unverified": [...], "all_verified": bool}
     """
     sources: dict[str, dict] = {}
     order: list[str] = []
     for st in role_spec.stages:
+        required = _required_checks(st)
         sources[st.id] = {
             "title": st.title,
             "seen_value": False,
             "zoomed_footnote": False,
+            "checked_version_unit": False,
+            "checked_credibility": False,
+            "required_checks": required,
+            "required_labels": [_CHECK_DEFS[c]["label"] for c in required],
             "verified": False,
         }
         order.append(st.id)
@@ -196,12 +270,16 @@ def _investigation_ledger(history: list[Step], role_spec) -> dict:
         stage_spec = stages.get(s.stage)
         if stage_spec is None:
             continue
-        if _observes_footnote(s.action, stage_spec):
-            src["zoomed_footnote"] = True
         if _observes_value(s.action, stage_spec):
             src["seen_value"] = True
+        if _target_hits_any(s.action, stage_spec, _CHECK_DEFS["context"]["suffixes"]):
+            src["zoomed_footnote"] = True
+        if _target_hits_any(s.action, stage_spec, _CHECK_DEFS["version"]["suffixes"]):
+            src["checked_version_unit"] = True
+        if _target_hits_any(s.action, stage_spec, _CHECK_DEFS["credibility"]["suffixes"]):
+            src["checked_credibility"] = True
     for sid in order:
-        sources[sid]["verified"] = sources[sid]["seen_value"] and sources[sid]["zoomed_footnote"]
+        sources[sid]["verified"] = _next_missing_check(sources[sid]) is None
     unverified = [sid for sid in order if not sources[sid]["verified"]]
     return {
         "sources": sources,
@@ -227,34 +305,27 @@ def _guard_investigation_action(
         return action, thought, None
 
     if not cur["verified"]:
-        if not cur["seen_value"] and not _observes_value(action, stage_spec):
-            target = _semantic_target(stage_spec, "keyvalue")
-            if target is not None:
-                guarded = Action(
-                    type="see",
-                    target=target,
-                    label="SEE: 核查当前来源关键数字",
-                )
-                return (
-                    guarded,
-                    "证据账本显示当前来源的关键数字尚未确认，先读取关键数字再跳转。",
-                    "force_current_value",
-                )
-        if cur["seen_value"] and not cur["zoomed_footnote"] and not _observes_footnote(
-            action, stage_spec
-        ):
-            target = _semantic_target(stage_spec, "footnote")
-            if target is not None:
-                guarded = Action(
-                    type="zoom_in",
-                    target=target,
-                    label="ZOOM: 放大脚注确认口径",
-                )
-                return (
-                    guarded,
-                    "关键数字已确认，但口径脚注尚未核查，先放大脚注找出差异原因。",
-                    "force_current_footnote",
-                )
+        missing = _next_missing_check(cur)
+        if missing:
+            check_def = _CHECK_DEFS[missing]
+            observed = (
+                _observes_value(action, stage_spec)
+                if missing == "value"
+                else _target_hits_any(action, stage_spec, check_def["suffixes"])
+            )
+            if not observed:
+                target = _semantic_target_any(stage_spec, check_def["suffixes"])
+                if target is not None:
+                    guarded = Action(
+                        type=check_def["action"],
+                        target=target,
+                        label=check_def["guard_label"],
+                    )
+                    return (
+                        guarded,
+                        check_def["guard_thought"],
+                        check_def["guard_reason"],
+                    )
         return action, thought, None
 
     if ledger.get("all_verified"):

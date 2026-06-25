@@ -123,8 +123,38 @@ PAGESPEC: dict[str, dict] = {
             "cs-risk": ("风险提示小字", "region", "关键小字：现金流风险/免责，放大看清", None),
         },
     },
-    # ── D4 多源破案：3 个信息源 × 2 组案例（revenue 营收 / product 续航）──
+    # ── D4 多源破案：revenue 升级为 5 源复杂证据链；product 保持 3 源续航案例 ──
     # source 间用 link 互相指向，形成可主动回看的网状证据池。
+    "src-annual-pdf": {
+        "file": "src-annual-pdf.html",
+        "elements": {
+            "annpdf-toolbar": ("PDF 工具栏 · 年报第18页", "region", "来源身份：公司年报PDF截图", None),
+            "annpdf-header": ("标题 · 锐芯科技 2025 年报摘要", "region", "法定披露文件头部", None),
+            "annpdf-keyvalue": ("母公司收入 10.2 亿", "region", "关键数字：母公司主营口径，放大确认", None),
+            "annpdf-table": ("主要会计数据表", "region", "母公司口径摘要表", None),
+            "annpdf-footnote": ("脚注 · 母公司/合并口径说明", "region", "关键小字：10.2为母公司口径/合并口径15.0亿，放大看清", None),
+            "annpdf-trap": ("误读提示 · 大号数字不是最终答案", "region", "干扰说明：只看大数字会误判", None),
+            "annpdf-to-notes": ("跳转 · 财报附注", "link", "主动查看合并范围与关联交易附注", "src-annual-notes"),
+            "annpdf-to-research": ("跳转 · 查看券商研报", "link", "主动核查研报是否采用合并口径", "src-research"),
+            "annpdf-to-press": ("跳转 · 查看新闻报道", "link", "主动核查媒体12.6亿是否可靠", "src-press"),
+            "annpdf-to-database": ("跳转 · 查看数据库摘要", "link", "主动核查数据库修订版与单位", "src-database"),
+        },
+    },
+    "src-annual-notes": {
+        "file": "src-annual-notes.html",
+        "elements": {
+            "notes-toolbar": ("PDF 工具栏 · 年报附注页", "region", "来源身份：年报附注截图", None),
+            "notes-header": ("标题 · 财报附注", "region", "附注七/八说明", None),
+            "notes-consolidated": ("附注七 · 合并范围表", "region", "关键表格：10.2+4.8=15.0", None),
+            "notes-footnote": ("脚注 · 审计合并口径 15.0 亿", "region", "关键小字：真实营收优先采用审计合并口径15.0亿，放大看清", None),
+            "notes-related": ("附注八 · 关联交易与分部收入", "region", "解释4.8亿与12.6亿分部收入", None),
+            "notes-distractor": ("误导点 · 新闻与数据库混淆", "region", "排除干扰：12.6为分部收入/14.7为旧快报", None),
+            "notes-to-annual": ("回看 · 年报PDF首页", "link", "回看10.2亿母公司口径", "src-annual-pdf"),
+            "notes-to-research": ("跳转 · 查看券商研报", "link", "核查研报是否复核15.0亿", "src-research"),
+            "notes-to-press": ("跳转 · 查看新闻报道", "link", "核查12.6亿是否误读分部收入", "src-press"),
+            "notes-to-database": ("跳转 · 查看数据库摘要", "link", "核查14.7/15.0版本差异", "src-database"),
+        },
+    },
     "src-annual": {
         "file": "src-annual.html",
         "elements": {
@@ -143,8 +173,10 @@ PAGESPEC: dict[str, dict] = {
             "res-table": ("盈利预测表", "region", "合并口径预测表", None),
             "res-keyvalue": ("营业收入 15.0 亿", "region", "关键数字：合并报表口径，放大确认", None),
             "res-footnote": ("脚注 · 合并口径说明", "region", "关键小字：合并口径/本部10.2亿+关联4.8亿，放大看清", None),
-            "res-to-annual": ("回看 · 年度报告", "link", "主动回看年报核对母公司口径", "src-annual"),
+            "res-to-annual": ("回看 · 年报PDF首页", "link", "主动回看10.2亿母公司口径", "src-annual-pdf"),
+            "res-to-notes": ("跳转 · 财报附注", "link", "主动查看附注七核对合并口径", "src-annual-notes"),
             "res-to-press": ("跳转 · 查看新闻报道", "link", "主动核查媒体报道营收", "src-press"),
+            "res-to-database": ("跳转 · 查看数据库摘要", "link", "主动核查修订版与单位", "src-database"),
         },
     },
     "src-press": {
@@ -152,9 +184,27 @@ PAGESPEC: dict[str, dict] = {
         "elements": {
             "prs-header": ("标题 · 财经媒体报道", "region", "来源身份：转引报道", None),
             "prs-keyvalue": ("报道营收 12.6 亿", "region", "关键数字：口径未注明，放大确认", None),
-            "prs-footnote": ("脚注 · 数据来源说明", "region", "关键小字：据公开资料整理/口径未明确，放大看清", None),
-            "prs-to-annual": ("回看 · 年度报告", "link", "主动回看年报核对真实营收", "src-annual"),
+            "prs-wrong-sum": ("报道整理口径 · 分部收入误读", "region", "干扰项：12.6亿疑似车规芯片分部收入", None),
+            "prs-footnote": ("脚注 · 数据来源说明", "region", "关键小字：口径未明确/12.6疑似分部收入/以年报附注为准，放大看清", None),
+            "prs-to-annual": ("回看 · 年报PDF首页", "link", "主动回看年报核对母公司口径", "src-annual-pdf"),
+            "prs-to-notes": ("跳转 · 财报附注", "link", "主动核查12.6是否为分部收入", "src-annual-notes"),
             "prs-to-research": ("跳转 · 查看券商研报", "link", "主动核查研报营收", "src-research"),
+            "prs-to-database": ("跳转 · 查看数据库摘要", "link", "主动核查审计版字段", "src-database"),
+        },
+    },
+    "src-database": {
+        "file": "src-database.html",
+        "elements": {
+            "db-header": ("标题 · 第三方数据库摘要", "region", "来源身份：金融数据库自动抓取", None),
+            "db-terminal": ("数据库终端面板", "region", "深色数据库摘要界面", None),
+            "db-keyvalue": ("数据库摘要 14.7/15.0/10.2", "region", "关键数字：快报/年报修订/母公司口径并列，放大确认", None),
+            "db-version-table": ("版本表 · 快报与年报修订", "region", "单位为百万元，含14.7旧快报与15.0审计版", None),
+            "db-version-note": ("脚注 · 版本与单位说明", "region", "关键小字：1500.0百万元=15.0亿元/审计年报修订版，放大看清", None),
+            "db-unit-trap": ("误读提示 · 单位与版本混淆", "region", "干扰项：14.7旧快报和百万元单位容易误读", None),
+            "db-to-annual": ("回看 · 年报PDF首页", "link", "主动回看年报首页10.2亿口径", "src-annual-pdf"),
+            "db-to-notes": ("跳转 · 财报附注", "link", "主动核查审计版15.0亿来源", "src-annual-notes"),
+            "db-to-research": ("跳转 · 查看券商研报", "link", "主动核查研报是否采纳审计版", "src-research"),
+            "db-to-press": ("跳转 · 查看新闻报道", "link", "主动排除12.6亿媒体误读", "src-press"),
         },
     },
     "src-official": {

@@ -40,10 +40,13 @@ _MARKET_IMG, _MARKET = _load_manifest("market-data")
 _REPORT_IMG, _REPORT = _load_manifest("report")
 _CONSENSUS_IMG, _CONSENSUS = _load_manifest("consensus")
 
-# D4 多源破案：3 个信息源 × 2 组案例（revenue 营收 / product 续航）
+# D4 多源破案：revenue 为 5 源复杂财务核查；product 为 3 源续航核查
+_ANNUAL_PDF_IMG, _ANNUAL_PDF = _load_manifest("src-annual-pdf")
+_ANNUAL_NOTES_IMG, _ANNUAL_NOTES = _load_manifest("src-annual-notes")
 _ANNUAL_IMG, _ANNUAL = _load_manifest("src-annual")
 _RESEARCH_IMG, _RESEARCH = _load_manifest("src-research")
 _PRESS_IMG, _PRESS = _load_manifest("src-press")
+_DATABASE_IMG, _DATABASE = _load_manifest("src-database")
 _OFFICIAL_IMG, _OFFICIAL = _load_manifest("src-official")
 _REVIEW_IMG, _REVIEW = _load_manifest("src-review")
 _FORUM_IMG, _FORUM = _load_manifest("src-forum")
@@ -127,28 +130,40 @@ SCENES: dict[str, SceneSpec] = {
                 key="revenue",
                 persona="ANALYST · 财务分析师",
                 prompt=(
-                    "锐芯科技 2025 年的真实营收到底是多少？年报、券商研报、新闻报道三个来源"
-                    "说法不一，请逐个核查每个来源的营收数字与口径，找出数字背后的真实口径，"
-                    "并给出一致性解释。"
+                    "锐芯科技 2025 年法定已审计的合并口径营业收入到底是多少？年报 PDF、"
+                    "财报附注、券商研报、新闻报道、数据库摘要给出的说法不一。请逐个核查数字、口径、版本/单位与来源可信度，"
+                    "排除误读后给出一致性解释。"
                 ),
                 stages=[
                     StageSpec(
-                        id="src-annual",
-                        title="证据 A · 年度报告",
-                        image=_ANNUAL_IMG,
-                        elements=list(_ANNUAL.values()),
+                        id="src-annual-pdf",
+                        title="证据 A · 年度报告 PDF",
+                        image=_ANNUAL_PDF_IMG,
+                        elements=list(_ANNUAL_PDF.values()),
+                    ),
+                    StageSpec(
+                        id="src-annual-notes",
+                        title="证据 B · 财报附注",
+                        image=_ANNUAL_NOTES_IMG,
+                        elements=list(_ANNUAL_NOTES.values()),
                     ),
                     StageSpec(
                         id="src-research",
-                        title="证据 B · 券商研报",
+                        title="证据 C · 券商研报",
                         image=_RESEARCH_IMG,
                         elements=list(_RESEARCH.values()),
                     ),
                     StageSpec(
                         id="src-press",
-                        title="证据 C · 新闻报道",
+                        title="证据 D · 新闻报道",
                         image=_PRESS_IMG,
                         elements=list(_PRESS.values()),
+                    ),
+                    StageSpec(
+                        id="src-database",
+                        title="证据 E · 数据库摘要",
+                        image=_DATABASE_IMG,
+                        elements=list(_DATABASE.values()),
                     ),
                 ],
             ),
